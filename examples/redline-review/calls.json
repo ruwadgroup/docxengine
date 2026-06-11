@@ -1,0 +1,10 @@
+[
+  { "tool": "docx_open", "args": { "path": "contract.docx" } },
+  { "tool": "docx_revision", "args": { "doc_id": "d1", "op": "list" } },
+  {
+    "tool": "docx_revision",
+    "args": { "doc_id": "d1", "op": "accept", "filter": { "author": "Jane Doe" } }
+  },
+  { "tool": "docx_validate", "args": { "doc_id": "d1" } },
+  { "tool": "docx_save", "args": { "doc_id": "d1", "path": "contract-reviewed.docx" } }
+]

@@ -1,0 +1,27 @@
+[
+  { "tool": "docx_open", "args": { "path": "report.docx" } },
+  { "tool": "docx_search", "args": { "doc_id": "d1", "query": "Acme Corp" } },
+  {
+    "tool": "docx_replace",
+    "args": {
+      "doc_id": "d1",
+      "old": "Acme Corp",
+      "new": "GlobalTech Inc",
+      "all": true,
+      "track_changes": true,
+      "author": "Rebrand Bot"
+    }
+  },
+  {
+    "tool": "docx_replace",
+    "args": {
+      "doc_id": "d1",
+      "old": "Acme Corp",
+      "new": "GlobalTech Inc",
+      "all": true,
+      "track_changes": true,
+      "author": "Rebrand Bot"
+    }
+  },
+  { "tool": "docx_save", "args": { "doc_id": "d1", "path": "report-rebranded.docx" } }
+]
