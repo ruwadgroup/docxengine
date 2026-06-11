@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-06-11
+
 ### Changed
 
 - **MCP tool surface is now path-based** (was `doc_id`/`docx_save`). Agents pass a file `path` to every tool and edits persist automatically; the 24-tool spec becomes 23 over MCP (`docx_save` dropped). The SDK `call()` surface and the CLI are unchanged.

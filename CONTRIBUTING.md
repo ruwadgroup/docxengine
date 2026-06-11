@@ -1,6 +1,6 @@
 # Contributing to DocxEngine
 
-Thanks for your interest! DocxEngine is design-first and pre-alpha, which means contributions right now have outsized impact.
+Thanks for your interest! DocxEngine is design-first and early-stage, which means contributions right now have outsized impact.
 
 ## The most valuable contributions (especially now)
 

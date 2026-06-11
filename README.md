@@ -12,15 +12,13 @@ One deterministic core that edits OOXML directly (unzip → patch XML → rezip)
 [![Node ≥22](https://img.shields.io/badge/node-%E2%89%A522-brightgreen)](js/)
 [![MCP](https://img.shields.io/badge/MCP-stdio%20%2B%20streamable--http-8A2BE2)](docs/mcp/server.md)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://conventionalcommits.org)
-[![Status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-orange)](ROADMAP.md)
+[![Release](https://img.shields.io/github/v/tag/ruwadgroup/docxengine?sort=semver&label=release&color=blue)](https://github.com/ruwadgroup/docxengine/releases)
 
 [Quickstart](docs/start/quickstart.md) · [Concepts](docs/start/concepts.md) · [Tool reference](docs/tools/index.md) · [Architecture](ARCHITECTURE.md) · [MCP server](docs/mcp/server.md) · [Docs](docs/README.md) · [Roadmap](ROADMAP.md)
 
 </div>
 
 ---
-
-> **Status: pre-alpha — Phases 0–2 implemented.** All 24 tools work today in both Python and TypeScript: read/search/edit/redlines, tables, styles, lists, sections, comments, media, fields, templates, create, convert, and the render adapter — with 31/31 cross-implementation conformance cases passing and the MCP server speaking both stdio and Streamable HTTP. Packages are not yet published to PyPI/npm — install from source for now. Remaining before 0.1: baseline benchmark comparisons and Phase 3 hardening ([ROADMAP.md](ROADMAP.md)).
 
 ## Table of contents
 
@@ -125,7 +123,7 @@ See [Concepts](docs/start/concepts.md) for anchors, projection, and the validati
 
 ## Getting started
 
-> Pre-alpha: not yet published to PyPI/npm — install from source. All 24 tools work today; see the [Quickstart](docs/start/quickstart.md) and [examples/](examples/).
+> Not yet published to PyPI/npm — install from source. All 24 tools work today; see the [Quickstart](docs/start/quickstart.md) and [examples/](examples/).
 
 ```bash
 git clone https://github.com/ruwadgroup/docxengine.git && cd docxengine
