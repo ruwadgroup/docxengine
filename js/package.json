@@ -1,0 +1,50 @@
+{
+  "name": "@docxengine/core",
+  "version": "0.0.0",
+  "description": "AI-optimized DOCX manipulation engine: deterministic OOXML editing with tracked changes, hash-anchored addressing, and a token-efficient agent view.",
+  "license": "Apache-2.0",
+  "author": "Tamim Bin Hakim (@tamimbinhakim)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruwadgroup/docxengine.git",
+    "directory": "js"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "sync-spec": "node scripts/sync-spec.mjs",
+    "build": "node scripts/sync-spec.mjs && tsc -p tsconfig.json",
+    "test": "vitest run",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "pnpm sync-spec && pnpm build"
+  },
+  "keywords": [
+    "docx",
+    "ooxml",
+    "mcp",
+    "ai-agents",
+    "tracked-changes"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "dependencies": {
+    "fflate": "^0.8.3"
+  }
+}
