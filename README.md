@@ -182,7 +182,6 @@ Contributions are welcome — especially conformance corpus documents, OOXML edg
 ## Community & support
 
 - **Bugs & features** — [GitHub issues](https://github.com/ruwadgroup/docxengine/issues) (structured templates)
-- **Questions & ideas** — [GitHub Discussions](https://github.com/ruwadgroup/docxengine/discussions)
 - **Security reports** — privately, per [SECURITY.md](SECURITY.md)
 - **Governance** — [GOVERNANCE.md](GOVERNANCE.md)
 
