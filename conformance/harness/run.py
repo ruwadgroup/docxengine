@@ -69,8 +69,19 @@ FIXED_ENV = {
     "DOCXENGINE_AUTHOR": "Harness",
 }
 
+def _python_cli() -> str:
+    """Interpreter with docxengine installed: env override → repo venv → current."""
+    override = os.environ.get("DOCXENGINE_PY")
+    if override:
+        return override
+    venv_python = REPO_DIR / ".venv" / "bin" / "python"
+    if venv_python.exists():
+        return str(venv_python)
+    return sys.executable
+
+
 IMPLS: dict[str, list[str]] = {
-    "py": [str(REPO_DIR / ".venv" / "bin" / "python"), "-m", "docxengine.cli"],
+    "py": [_python_cli(), "-m", "docxengine.cli"],
     "js": ["node", str(REPO_DIR / "js" / "dist" / "cli.js")],
 }
 

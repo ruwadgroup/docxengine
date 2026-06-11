@@ -30,10 +30,11 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
-      - name: Run harness (activates as code lands)
+      - name: Install Python engine
+        run: pip install -e python
+      - name: Build JS engine
         run: |
-          if [ -n "$(ls -A conformance/harness 2>/dev/null)" ]; then
-            make conformance
-          else
-            echo "conformance: harness not implemented yet — skipping"
-          fi
+          pnpm install --frozen-lockfile
+          pnpm --dir js build
+      - name: Run harness
+        run: python conformance/harness/run.py
