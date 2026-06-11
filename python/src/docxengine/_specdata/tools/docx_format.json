@@ -1,0 +1,88 @@
+{
+  "name": "docx_format",
+  "description": "Apply formatting properties to a style_selector (edits the style definition in styles.xml \u2014 one change, document-wide effect, idempotent) or as direct formatting on an anchor/range. Prefer style_selector for document-wide changes; use docx_style {op: 'list'} first to discover style names.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": {
+        "type": "string"
+      },
+      "anchor": {
+        "type": "string",
+        "description": "Paragraph anchor like 'P12#e7f8'."
+      },
+      "range": {
+        "type": "string",
+        "description": "Paragraph range like 'P14..P16'. Provide one of anchor, range, or style_selector."
+      },
+      "style_selector": {
+        "type": "object",
+        "description": "Targets the named style's definition instead of individual paragraphs.",
+        "properties": {
+          "style": {
+            "type": "string",
+            "description": "Named style like 'Heading 2'."
+          }
+        },
+        "required": ["style"]
+      },
+      "props": {
+        "type": "object",
+        "description": "Formatting properties to apply: color, bold, italic, size, alignment, spacing, etc.",
+        "properties": {
+          "color": {
+            "type": "string",
+            "description": "Hex color like '#1F4E79'."
+          },
+          "bold": {
+            "type": "boolean"
+          },
+          "italic": {
+            "type": "boolean"
+          },
+          "size": {
+            "type": "number",
+            "description": "Font size in points."
+          },
+          "alignment": {
+            "type": "string",
+            "enum": ["left", "center", "right", "justify"]
+          },
+          "spacing": {
+            "type": "number",
+            "description": "Line spacing multiplier."
+          }
+        }
+      },
+      "track_changes": {
+        "type": "boolean",
+        "default": false
+      },
+      "author": {
+        "type": "string",
+        "description": "Revision author when track_changes is true. Defaults from environment."
+      }
+    },
+    "required": ["doc_id", "props"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "affected": {
+        "type": "integer",
+        "description": "Number of paragraphs affected."
+      },
+      "anchors": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "note": {
+        "type": "string"
+      }
+    },
+    "required": ["affected"]
+  },
+  "errors": ["doc_not_found", "anchor_stale", "anchor_invalid", "anchor_not_found", "style_unknown"]
+}

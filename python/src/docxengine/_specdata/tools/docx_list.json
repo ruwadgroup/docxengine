@@ -1,0 +1,70 @@
+{
+  "name": "docx_list",
+  "description": "Create lists, restart or re-level numbering, and convert paragraphs to/from list items — the abstract-numbering indirection in numbering.xml is handled internally. Get target anchors from docx_read or docx_search first.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "op": { "type": "string", "enum": ["create", "restart", "set_level", "convert"] },
+      "anchor": {
+        "type": "string",
+        "description": "Paragraph anchor like 'P12#e7f8'. Single target for ops 'restart'/'set_level'/'convert'."
+      },
+      "range": {
+        "type": "string",
+        "description": "Paragraph range like 'P10..P14' to target multiple items instead of a single anchor."
+      },
+      "after": {
+        "type": "string",
+        "description": "Paragraph anchor like 'P12#e7f8'. Insert the new list after this paragraph (op 'create')."
+      },
+      "kind": {
+        "type": "string",
+        "enum": ["ol", "ul"],
+        "default": "ul",
+        "description": "Ordered or unordered list (op 'create')."
+      },
+      "items": {
+        "type": "array",
+        "description": "List items for op 'create'; 'level' nests multi-level lists.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "text": { "type": "string" },
+            "level": { "type": "integer", "default": 0 }
+          },
+          "required": ["text"]
+        }
+      },
+      "at": {
+        "type": "integer",
+        "default": 1,
+        "description": "Value numbering restarts at (op 'restart')."
+      },
+      "level": {
+        "type": "integer",
+        "description": "Zero-based list level to assign (op 'set_level')."
+      },
+      "to": {
+        "type": "string",
+        "enum": ["ol", "ul", "paragraphs"],
+        "description": "Conversion target (op 'convert'): make the paragraphs list items, or turn list items back into plain paragraphs."
+      },
+      "track_changes": { "type": "boolean", "default": false },
+      "author": {
+        "type": "string",
+        "description": "Revision author when track_changes is true. Defaults from environment."
+      }
+    },
+    "required": ["doc_id", "op"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "new_anchors": { "type": "array", "items": { "type": "string" } },
+      "n_affected": { "type": "integer" },
+      "note": { "type": "string" }
+    }
+  },
+  "errors": ["doc_not_found", "anchor_stale", "anchor_invalid", "anchor_not_found"]
+}

@@ -1,0 +1,43 @@
+{
+  "name": "docx_delete",
+  "description": "Delete a single paragraph by anchor or a contiguous range like 'P14..P16'. With track_changes on, deletion becomes a redline rather than physical removal. Get anchors from docx_search or docx_read first.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": {
+        "type": "string"
+      },
+      "anchor": {
+        "type": "string",
+        "description": "Paragraph anchor like 'P12#e7f8'."
+      },
+      "range": {
+        "type": "string",
+        "description": "Paragraph range like 'P14..P16'. Provide anchor or range, not both."
+      },
+      "track_changes": {
+        "type": "boolean",
+        "default": false
+      },
+      "author": {
+        "type": "string",
+        "description": "Revision author when track_changes is true. Defaults from environment."
+      }
+    },
+    "required": ["doc_id"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "ok": {
+        "type": "boolean"
+      },
+      "deleted": {
+        "type": "integer",
+        "description": "Number of paragraphs deleted."
+      }
+    },
+    "required": ["ok", "deleted"]
+  },
+  "errors": ["doc_not_found", "anchor_stale", "anchor_invalid", "anchor_not_found"]
+}

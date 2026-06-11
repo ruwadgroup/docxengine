@@ -1,0 +1,43 @@
+{
+  "name": "docx_edit_paragraph",
+  "description": "Rewrite a paragraph's full text; with track_changes on, an automatic word-level diff marks only the changed words as a clean redline. Use docx_replace for small in-paragraph substitutions. Get the anchor from docx_search or docx_read first.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": {
+        "type": "string"
+      },
+      "anchor": {
+        "type": "string",
+        "description": "Paragraph anchor like 'P12#e7f8'."
+      },
+      "text": {
+        "type": "string",
+        "description": "Replacement text for the whole paragraph."
+      },
+      "track_changes": {
+        "type": "boolean",
+        "default": false
+      },
+      "author": {
+        "type": "string",
+        "description": "Revision author when track_changes is true. Defaults from environment."
+      }
+    },
+    "required": ["doc_id", "anchor", "text"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "new_anchor": {
+        "type": "string"
+      },
+      "diff": {
+        "type": "string",
+        "description": "Summary of the word-level diff, e.g. '~3 words changed'."
+      }
+    },
+    "required": ["new_anchor"]
+  },
+  "errors": ["doc_not_found", "anchor_stale", "anchor_invalid", "anchor_not_found"]
+}

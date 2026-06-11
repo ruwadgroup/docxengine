@@ -1,0 +1,22 @@
+{
+  "name": "docx_save",
+  "description": "Write the document to disk, running the full validation gate first and refusing to write a package that would trigger Word repair. Writes atomically, preserving untouched parts byte-for-byte; saving never closes the doc_id, so keep editing and save again.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "path": { "type": "string" }
+    },
+    "required": ["doc_id", "path"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "ok": { "type": "boolean" },
+      "validated": { "type": "boolean" },
+      "bytes": { "type": "integer" }
+    },
+    "required": ["ok", "validated", "bytes"]
+  },
+  "errors": ["doc_not_found", "validation_failed", "save_failed", "path_denied"]
+}

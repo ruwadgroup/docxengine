@@ -1,0 +1,43 @@
+{
+  "name": "docx_search",
+  "description": "Find text in the document and get matching anchors with snippets and surrounding context — never the whole document. Matching runs on coalesced text, so a query split across runs in the XML still hits. Use this to locate targets before docx_read or any edit tool.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "query": { "type": "string" },
+      "regex": {
+        "type": "boolean",
+        "description": "Treat query as a regular expression.",
+        "default": false
+      },
+      "scope": {
+        "type": "string",
+        "description": "Story name ('body', 'footnotes', 'comments', 'headers', 'footers') or paragraph range like 'P10..P24'.",
+        "default": "body"
+      },
+      "response_format": { "type": "string", "enum": ["concise", "detailed"], "default": "concise" }
+    },
+    "required": ["doc_id", "query"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "matches": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "anchor": { "type": "string" },
+            "snippet": { "type": "string" },
+            "context": { "type": "string" }
+          },
+          "required": ["anchor", "snippet"]
+        }
+      },
+      "n_matches": { "type": "integer" }
+    },
+    "required": ["matches", "n_matches"]
+  },
+  "errors": ["doc_not_found", "not_found"]
+}

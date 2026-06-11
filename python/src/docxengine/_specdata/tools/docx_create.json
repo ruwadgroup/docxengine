@@ -1,0 +1,27 @@
+{
+  "name": "docx_create",
+  "description": "Create a new document from Markdown (headings, lists, tables, emphasis) or a structured spec with explicit styles and sections. Returns a doc_id for subsequent edits; output passes the same validation gate as every edit. Provide exactly one of content_md or spec.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "content_md": {
+        "type": "string",
+        "description": "Markdown content for the new document. Mutually exclusive with spec."
+      },
+      "spec": {
+        "type": "object",
+        "description": "Structured document spec with explicit styles and sections. Mutually exclusive with content_md."
+      }
+    },
+    "required": []
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "n_paragraphs": { "type": "integer" }
+    },
+    "required": ["doc_id", "n_paragraphs"]
+  },
+  "errors": ["validation_failed"]
+}

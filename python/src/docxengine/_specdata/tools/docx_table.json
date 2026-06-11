@@ -1,0 +1,101 @@
+{
+  "name": "docx_table",
+  "description": "One consolidated tool for all table operations: create, set_cells, insert_row, insert_col, delete_row, delete_col, merge, style. 'create' inserts a table after a paragraph anchor and returns a table anchor like 'T4'; subsequent ops target that anchor. Cell addressing accepts zero-based {r, c} pairs or A1 notation.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "op": {
+        "type": "string",
+        "enum": [
+          "create",
+          "set_cells",
+          "insert_row",
+          "insert_col",
+          "delete_row",
+          "delete_col",
+          "merge",
+          "style"
+        ]
+      },
+      "anchor": {
+        "type": "string",
+        "description": "Table anchor like 'T4'. Required for every op except 'create'."
+      },
+      "after": {
+        "type": "string",
+        "description": "Insert the new table after this paragraph anchor like 'P12#e7f8' (op 'create')."
+      },
+      "rows": {
+        "type": "integer",
+        "description": "Row count (op 'create')."
+      },
+      "cols": {
+        "type": "integer",
+        "description": "Column count (op 'create')."
+      },
+      "data": {
+        "type": "array",
+        "description": "Initial cell text by row (op 'create').",
+        "items": { "type": "array", "items": { "type": "string" } }
+      },
+      "header": {
+        "type": "boolean",
+        "default": false,
+        "description": "Style the first row as a header row (op 'create')."
+      },
+      "cells": {
+        "type": "array",
+        "description": "Cells to write (op 'set_cells'). Address each by zero-based {r, c} or A1-style ref.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "r": {
+              "type": "integer",
+              "description": "Zero-based row index."
+            },
+            "c": {
+              "type": "integer",
+              "description": "Zero-based column index."
+            },
+            "ref": {
+              "type": "string",
+              "description": "A1-style cell reference like 'B2'. Alternative to r/c."
+            },
+            "text": { "type": "string" }
+          },
+          "required": ["text"]
+        }
+      },
+      "at": {
+        "type": "integer",
+        "description": "Zero-based row/column index for insert_row, insert_col, delete_row, delete_col."
+      },
+      "range": {
+        "type": "string",
+        "description": "Cell range in A1 notation like 'A1:C1' (op 'merge')."
+      },
+      "style": {
+        "type": "string",
+        "description": "Table style name like 'Table Grid' (ops 'create', 'style')."
+      },
+      "track_changes": { "type": "boolean", "default": false },
+      "author": {
+        "type": "string",
+        "description": "Revision author when track_changes is true. Defaults from environment."
+      }
+    },
+    "required": ["doc_id", "op"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "new_anchor": {
+        "type": "string",
+        "description": "Table anchor like 'T4@after:P12#e7f8' (op 'create')."
+      },
+      "note": { "type": "string" }
+    }
+  },
+  "errors": ["doc_not_found", "anchor_stale", "anchor_invalid", "anchor_not_found", "style_unknown"]
+}

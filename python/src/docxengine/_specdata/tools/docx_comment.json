@@ -1,0 +1,63 @@
+{
+  "name": "docx_comment",
+  "description": "Add, reply to, resolve, list, or delete comments, including threaded replies and resolution state. Use op 'list' to discover comment ids like 'C7'; op 'add' anchors the comment to a paragraph found via docx_search or docx_read.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "op": { "type": "string", "enum": ["add", "reply", "resolve", "list", "delete"] },
+      "anchor": {
+        "type": "string",
+        "description": "Paragraph anchor like 'P12#e7f8'. Where the comment attaches (op 'add')."
+      },
+      "comment_id": {
+        "type": "string",
+        "description": "Comment id like 'C7' (ops 'reply'/'resolve'/'delete')."
+      },
+      "text": {
+        "type": "string",
+        "description": "Comment body (ops 'add'/'reply')."
+      },
+      "author": {
+        "type": "string",
+        "description": "Comment author for ops 'add'/'reply'. Defaults from environment."
+      },
+      "response_format": { "type": "string", "enum": ["concise", "detailed"], "default": "concise" }
+    },
+    "required": ["doc_id", "op"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "comment_id": { "type": "string" },
+      "anchor": { "type": "string" },
+      "comments": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "anchor": { "type": "string" },
+            "author": { "type": "string" },
+            "date": { "type": "string" },
+            "text": { "type": "string" },
+            "resolved": { "type": "boolean" },
+            "replies": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "author": { "type": "string" },
+                  "date": { "type": "string" },
+                  "text": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "note": { "type": "string" }
+    }
+  },
+  "errors": ["doc_not_found", "anchor_stale", "anchor_invalid", "not_found"]
+}

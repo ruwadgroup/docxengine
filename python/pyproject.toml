@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "docxengine"
+version = "0.0.0"
+description = "AI-optimized DOCX manipulation engine: deterministic OOXML editing with tracked changes, hash-anchored addressing, and a token-efficient agent view."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "Apache-2.0"
+authors = [{ name = "Tamim Bin Hakim" }]
+keywords = ["docx", "ooxml", "mcp", "ai-agents", "tracked-changes"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Office/Business :: Office Suites",
+  "Topic :: Text Processing :: Markup :: XML",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.8", "mypy>=1.13"]
+mcp = ["mcp>=1.2"]
+
+[project.scripts]
+docxengine-mcp = "docxengine.mcp:main"
+
+[project.urls]
+Homepage = "https://github.com/ruwadgroup/docxengine"
+Documentation = "https://github.com/ruwadgroup/docxengine/tree/main/docs"
+Issues = "https://github.com/ruwadgroup/docxengine/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/docxengine"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+strict = true

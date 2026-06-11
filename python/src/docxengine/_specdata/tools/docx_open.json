@@ -1,0 +1,30 @@
+{
+  "name": "docx_open",
+  "description": "Open a .docx file from a path or raw bytes and get a doc_id handle plus a human-readable summary of what the document contains. Call this first — every other tool requires the doc_id it returns. Opening never mutates the file.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "path": {
+        "type": "string",
+        "description": "Filesystem path to the .docx file. Provide path or bytes."
+      },
+      "bytes": {
+        "type": "string",
+        "description": "Base64-encoded .docx file content. Provide path or bytes."
+      },
+      "response_format": { "type": "string", "enum": ["concise", "detailed"], "default": "concise" }
+    }
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "summary": { "type": "string" },
+      "n_paragraphs": { "type": "integer" },
+      "has_tracked_changes": { "type": "boolean" },
+      "has_comments": { "type": "boolean" }
+    },
+    "required": ["doc_id", "summary", "n_paragraphs", "has_tracked_changes", "has_comments"]
+  },
+  "errors": ["open_failed", "doc_too_large", "path_denied"]
+}

@@ -1,0 +1,39 @@
+{
+  "name": "docx_convert",
+  "description": "Convert an open document to another format: md/html are produced in-engine (lossless for content, revisions and comments annotated inline) and returned as content; pdf/png go through the render adapter and return a path, never inline bytes. Use docx_open or docx_create first to get a doc_id.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "to": { "type": "string", "enum": ["md", "html", "pdf", "png"] },
+      "path": {
+        "type": "string",
+        "description": "Output path for file-producing targets. Required when to is 'pdf' or 'png'; ignored for 'md' and 'html'."
+      }
+    },
+    "required": ["doc_id", "to"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "content": {
+        "type": "string",
+        "description": "Converted content, returned for 'md' and 'html'."
+      },
+      "path": {
+        "type": "string",
+        "description": "Written output path, returned for 'pdf' and 'png'."
+      },
+      "renderer": { "type": "string" },
+      "note": { "type": "string" }
+    }
+  },
+  "errors": [
+    "doc_not_found",
+    "unsupported_format",
+    "render_unavailable",
+    "render_failed",
+    "path_denied",
+    "save_failed"
+  ]
+}

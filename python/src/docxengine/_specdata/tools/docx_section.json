@@ -1,0 +1,86 @@
+{
+  "name": "docx_section",
+  "description": "Inspect and modify sections: page size, margins, orientation, columns, per-section headers/footers, and section breaks. Sections are addressed by the 'S2' ids surfaced in projections — call op 'list' first to map them.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "op": {
+        "type": "string",
+        "enum": ["list", "set_geometry", "set_header", "set_footer", "insert_break"]
+      },
+      "section": {
+        "type": "string",
+        "description": "Section id like 'S2' as shown in projections. Defaults to the first section.",
+        "default": "S1"
+      },
+      "page_size": { "type": "string", "enum": ["A3", "A4", "A5", "Letter", "Legal", "Tabloid"] },
+      "orientation": { "type": "string", "enum": ["portrait", "landscape"] },
+      "margins": {
+        "type": "object",
+        "description": "Margins in centimeters (op 'set_geometry').",
+        "properties": {
+          "top": { "type": "number" },
+          "bottom": { "type": "number" },
+          "left": { "type": "number" },
+          "right": { "type": "number" }
+        }
+      },
+      "columns": {
+        "type": "integer",
+        "description": "Number of text columns (op 'set_geometry')."
+      },
+      "content": {
+        "type": "string",
+        "description": "Header/footer content as Markdown or plain text (ops 'set_header'/'set_footer')."
+      },
+      "variant": {
+        "type": "string",
+        "enum": ["default", "first", "even"],
+        "default": "default",
+        "description": "Which header/footer variant to set (ops 'set_header'/'set_footer')."
+      },
+      "after": {
+        "type": "string",
+        "description": "Paragraph anchor like 'P12#e7f8'. Insert the section break after this paragraph (op 'insert_break')."
+      },
+      "break_type": {
+        "type": "string",
+        "enum": ["nextPage", "continuous", "evenPage", "oddPage"],
+        "default": "nextPage",
+        "description": "Kind of section break (op 'insert_break')."
+      },
+      "track_changes": { "type": "boolean", "default": false },
+      "author": {
+        "type": "string",
+        "description": "Revision author when track_changes is true. Defaults from environment."
+      },
+      "response_format": { "type": "string", "enum": ["concise", "detailed"], "default": "concise" }
+    },
+    "required": ["doc_id", "op"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "sections": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "break_type": { "type": "string" },
+            "page_size": { "type": "string" },
+            "orientation": { "type": "string" },
+            "columns": { "type": "integer" },
+            "has_header": { "type": "boolean" },
+            "has_footer": { "type": "boolean" }
+          }
+        }
+      },
+      "section": { "type": "string" },
+      "new_anchor": { "type": "string" },
+      "note": { "type": "string" }
+    }
+  },
+  "errors": ["doc_not_found", "anchor_stale", "anchor_invalid", "anchor_not_found"]
+}

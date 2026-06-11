@@ -1,0 +1,43 @@
+{
+  "name": "docx_outline",
+  "description": "Return the document's heading tree and table list with anchors, resolved through the style cascade. The cheap map of the document — call this right after docx_open on an unfamiliar document, then use the anchors for targeted reads.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "response_format": { "type": "string", "enum": ["concise", "detailed"], "default": "concise" }
+    },
+    "required": ["doc_id"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "outline": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "anchor": { "type": "string" },
+            "level": { "type": "integer" },
+            "text": { "type": "string" }
+          },
+          "required": ["anchor", "level", "text"]
+        }
+      },
+      "tables": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "anchor": { "type": "string" },
+            "dims": { "type": "string" },
+            "after": { "type": "string" }
+          },
+          "required": ["anchor", "dims"]
+        }
+      }
+    },
+    "required": ["outline", "tables"]
+  },
+  "errors": ["doc_not_found"]
+}

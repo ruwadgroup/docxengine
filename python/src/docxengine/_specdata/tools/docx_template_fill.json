@@ -1,0 +1,36 @@
+{
+  "name": "docx_template_fill",
+  "description": "Fill a mustache-style template — placeholders, loops, conditions — with data and return the new doc_id. Placeholders fragmented across split runs are coalesced before matching; an empty 'unfilled' list in the result is the success check.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "template": {
+        "type": "string",
+        "description": "Path to the template .docx."
+      },
+      "data": {
+        "type": "object",
+        "description": "Merge data: scalars fill placeholders, arrays expand loops, booleans drive conditions."
+      },
+      "syntax": { "type": "string", "enum": ["mustache"], "default": "mustache" },
+      "strict": {
+        "type": "boolean",
+        "default": false,
+        "description": "Fail with placeholder_unfilled instead of leaving placeholders blank when data is missing."
+      }
+    },
+    "required": ["template", "data"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "filled": { "type": "integer" },
+      "loops_expanded": { "type": "object", "additionalProperties": { "type": "integer" } },
+      "unfilled": { "type": "array", "items": { "type": "string" } },
+      "note": { "type": "string" }
+    },
+    "required": ["doc_id", "filled", "unfilled"]
+  },
+  "errors": ["open_failed", "path_denied", "placeholder_unfilled", "template_syntax"]
+}

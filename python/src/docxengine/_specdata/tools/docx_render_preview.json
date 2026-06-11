@@ -1,0 +1,44 @@
+{
+  "name": "docx_render_preview",
+  "description": "Render pages of the document to images and return resource links so you can check your own work: render, look, fix. Use at verification checkpoints after a batch of layout-affecting edits, not after every edit — renders cost seconds. The response names the renderer and any font substitutions so you can calibrate trust.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "pages": {
+        "type": "array",
+        "items": { "type": "integer" },
+        "description": "1-based page numbers to render. Omit to render every page."
+      },
+      "response_format": { "type": "string", "enum": ["concise", "detailed"], "default": "concise" }
+    },
+    "required": ["doc_id"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "pages": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "page": { "type": "integer" },
+            "image": {
+              "type": "string",
+              "description": "Resource link like 'docx://d1/preview/page-1.png'."
+            }
+          },
+          "required": ["page", "image"]
+        }
+      },
+      "renderer": { "type": "string" },
+      "structural": {
+        "type": "string",
+        "description": "Structural fallback only (renderer 'structural'): the §2 projection of the resolved document with an estimated page count. Present when no render adapter is installed."
+      },
+      "note": { "type": "string" }
+    },
+    "required": ["pages", "renderer"]
+  },
+  "errors": ["doc_not_found", "render_unavailable", "render_failed"]
+}
