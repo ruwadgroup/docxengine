@@ -1,0 +1,45 @@
+{
+  "name": "docx_read",
+  "description": "Read the Markdown projection of a paragraph window, a range, or a whole story (body, footnotes, comments, headers, footers). Use docx_outline or docx_search first to get an anchor; long ranges paginate with a continuation token under the token cap.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "anchor": {
+        "type": "string",
+        "description": "Paragraph anchor like 'P12#e7f8'. Reads this paragraph plus the surrounding window."
+      },
+      "range": {
+        "type": "string",
+        "description": "Paragraph range like 'P10..P24'. Alternative to anchor."
+      },
+      "window": {
+        "type": "integer",
+        "description": "Paragraphs of surrounding context to include around the anchor.",
+        "default": 0
+      },
+      "scope": {
+        "type": "string",
+        "enum": ["body", "footnotes", "comments", "headers", "footers"],
+        "default": "body"
+      },
+      "response_format": { "type": "string", "enum": ["concise", "detailed"], "default": "concise" }
+    },
+    "required": ["doc_id"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "content": {
+        "type": "string",
+        "description": "Markdown projection with anchors and salient formatting; resolved run-level formatting when response_format is 'detailed'."
+      },
+      "continuation": {
+        "type": "string",
+        "description": "Continuation token, present when the range was paginated."
+      }
+    },
+    "required": ["content"]
+  },
+  "errors": ["doc_not_found", "anchor_invalid", "anchor_not_found"]
+}

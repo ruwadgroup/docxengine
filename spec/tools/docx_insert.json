@@ -1,0 +1,40 @@
+{
+  "name": "docx_insert",
+  "description": "Insert new content after or before an existing paragraph. Content accepts Markdown (multi-paragraph, headings, lists) or plain text; returns one fresh anchor per inserted paragraph. Use docx_read or docx_outline first to find the position anchor.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "after": {
+        "type": "string",
+        "description": "Insert after this paragraph anchor like 'P12#e7f8'. Provide exactly one of after or before."
+      },
+      "before": {
+        "type": "string",
+        "description": "Insert before this paragraph anchor like 'P12#e7f8'. Provide exactly one of after or before."
+      },
+      "content": {
+        "type": "string",
+        "description": "Markdown (multi-paragraph, headings, lists) or plain text."
+      },
+      "style": {
+        "type": "string",
+        "description": "Paragraph style override like 'Heading 3'."
+      },
+      "track_changes": { "type": "boolean", "default": false },
+      "author": {
+        "type": "string",
+        "description": "Revision author when track_changes is true. Defaults from environment."
+      }
+    },
+    "required": ["doc_id", "content"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "new_anchors": { "type": "array", "items": { "type": "string" } }
+    },
+    "required": ["new_anchors"]
+  },
+  "errors": ["doc_not_found", "anchor_stale", "anchor_invalid", "anchor_not_found", "style_unknown"]
+}

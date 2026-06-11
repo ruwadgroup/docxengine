@@ -1,0 +1,33 @@
+{
+  "name": "docx_replace",
+  "description": "Replace text within a paragraph (or all paragraphs), preserving formatting across split runs. Returns the new anchor. Use docx_search first to locate text.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "anchor": {
+        "type": "string",
+        "description": "Paragraph anchor like 'P12#e7f8'. Omit to search whole doc."
+      },
+      "old": { "type": "string" },
+      "new": { "type": "string" },
+      "all": { "type": "boolean", "default": false },
+      "track_changes": { "type": "boolean", "default": false },
+      "author": {
+        "type": "string",
+        "description": "Revision author when track_changes is true. Defaults from environment."
+      }
+    },
+    "required": ["doc_id", "old", "new"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "new_anchor": { "type": "string" },
+      "anchors": { "type": "array", "items": { "type": "string" } },
+      "n_replaced": { "type": "integer" }
+    },
+    "required": ["n_replaced"]
+  },
+  "errors": ["doc_not_found", "anchor_stale", "anchor_invalid", "not_found", "ambiguous_target"]
+}

@@ -1,0 +1,62 @@
+{
+  "name": "docx_media",
+  "description": "Insert, extract, or replace images — the media part, relationship, and content-type registration are handled as one operation. Insert positions after/before an existing anchor; extract/replace target media ids like 'M2' shown in projections.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "op": { "type": "string", "enum": ["insert", "extract", "replace"] },
+      "after": {
+        "type": "string",
+        "description": "Paragraph anchor like 'P12#e7f8'. Insert the image after this paragraph (op 'insert')."
+      },
+      "before": {
+        "type": "string",
+        "description": "Paragraph anchor like 'P12#e7f8'. Insert the image before this paragraph (op 'insert')."
+      },
+      "image": {
+        "type": "string",
+        "description": "Path to the source image file (ops 'insert'/'replace')."
+      },
+      "width_cm": {
+        "type": "number",
+        "description": "Display width in centimeters; aspect ratio is preserved when height_cm is omitted."
+      },
+      "height_cm": {
+        "type": "number",
+        "description": "Display height in centimeters."
+      },
+      "media_id": {
+        "type": "string",
+        "description": "Media id like 'M2' (ops 'extract'/'replace')."
+      },
+      "path": {
+        "type": "string",
+        "description": "Output file path for the extracted image (op 'extract')."
+      },
+      "track_changes": { "type": "boolean", "default": false },
+      "author": {
+        "type": "string",
+        "description": "Revision author when track_changes is true. Defaults from environment."
+      }
+    },
+    "required": ["doc_id", "op"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "media_id": { "type": "string" },
+      "new_anchor": { "type": "string" },
+      "path": { "type": "string" },
+      "note": { "type": "string" }
+    }
+  },
+  "errors": [
+    "doc_not_found",
+    "anchor_stale",
+    "anchor_invalid",
+    "not_found",
+    "path_denied",
+    "save_failed"
+  ]
+}

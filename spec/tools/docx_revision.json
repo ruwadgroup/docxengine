@@ -1,0 +1,57 @@
+{
+  "name": "docx_revision",
+  "description": "List, accept, or reject tracked changes (w:ins/w:del), individually, in bulk, or filtered by author/date. Call op 'list' first to see revision ids, authors, and anchors; accept_all/reject_all are idempotent and all affected anchors come back fresh.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "op": { "type": "string", "enum": ["list", "accept", "reject", "accept_all", "reject_all"] },
+      "id": {
+        "type": "string",
+        "description": "Revision id like 'R1' to accept/reject a single revision."
+      },
+      "filter": {
+        "type": "object",
+        "description": "Restrict list/accept/reject to matching revisions.",
+        "properties": {
+          "author": { "type": "string" },
+          "after": {
+            "type": "string",
+            "description": "ISO date — only revisions on or after this date."
+          },
+          "before": {
+            "type": "string",
+            "description": "ISO date — only revisions before this date."
+          }
+        }
+      },
+      "response_format": { "type": "string", "enum": ["concise", "detailed"], "default": "concise" }
+    },
+    "required": ["doc_id", "op"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "revisions": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "type": { "type": "string", "enum": ["ins", "del"] },
+            "author": { "type": "string" },
+            "date": { "type": "string" },
+            "anchor": { "type": "string" },
+            "text": { "type": "string" }
+          }
+        }
+      },
+      "accepted": { "type": "integer" },
+      "rejected": { "type": "integer" },
+      "remaining_by_author": { "type": "object", "additionalProperties": { "type": "integer" } },
+      "anchors": { "type": "array", "items": { "type": "string" } },
+      "note": { "type": "string" }
+    }
+  },
+  "errors": ["doc_not_found", "not_found"]
+}

@@ -1,0 +1,136 @@
+{
+  "errors": [
+    {
+      "code": "anchor_stale",
+      "category": "addressing",
+      "message_template": "Anchor {anchor} is stale: the hash no longer matches the paragraph content.",
+      "recovery": "Call docx_read {anchor, window} and retry with the fresh anchor."
+    },
+    {
+      "code": "anchor_invalid",
+      "category": "addressing",
+      "message_template": "Malformed anchor string: {anchor}.",
+      "recovery": "Check the format 'P{index}#{hash}'."
+    },
+    {
+      "code": "anchor_not_found",
+      "category": "addressing",
+      "message_template": "Anchor {anchor} not found: index out of range or table anchor missing.",
+      "recovery": "Call docx_outline to re-map anchors."
+    },
+    {
+      "code": "doc_not_found",
+      "category": "session",
+      "message_template": "Unknown or expired doc_id: {doc_id}.",
+      "recovery": "Call docx_open again."
+    },
+    {
+      "code": "open_failed",
+      "category": "session",
+      "message_template": "Cannot open {path}: not a valid docx or unreadable path.",
+      "recovery": "Check the path; the message says what the file actually is."
+    },
+    {
+      "code": "doc_too_large",
+      "category": "session",
+      "message_template": "Document exceeds configured memory caps.",
+      "recovery": "Open with streaming options or split the document."
+    },
+    {
+      "code": "path_denied",
+      "category": "session",
+      "message_template": "Path {path} is outside the server's configured roots.",
+      "recovery": "Use an allowed path."
+    },
+    {
+      "code": "not_implemented",
+      "category": "session",
+      "message_template": "Tool {tool} is not implemented in this build.",
+      "recovery": "this tool lands in a later phase; see ROADMAP.md"
+    },
+    {
+      "code": "invalid_args",
+      "category": "session",
+      "message_template": "{tool}: missing required argument(s): {args}.",
+      "recovery": "Check the tool's input_schema in spec/tools/<tool>.json."
+    },
+    {
+      "code": "not_found",
+      "category": "edit",
+      "message_template": "Text not found: {old}.",
+      "recovery": "Broaden the query; check the projection for the exact text."
+    },
+    {
+      "code": "ambiguous_target",
+      "category": "edit",
+      "message_template": "{old} matches {count} times without all: true.",
+      "recovery": "Add all: true or narrow with an anchor."
+    },
+    {
+      "code": "style_unknown",
+      "category": "edit",
+      "message_template": "Named style {style} does not exist.",
+      "recovery": "Call docx_style {op: \"list\"} to see available styles."
+    },
+    {
+      "code": "batch_aborted",
+      "category": "edit",
+      "message_template": "Atomic batch aborted: an anchor failed upfront validation.",
+      "recovery": "Re-read the stale anchors and resubmit the batch."
+    },
+    {
+      "code": "edit_conflict",
+      "category": "edit",
+      "message_template": "Concurrent write on doc_id {doc_id} (HTTP transport).",
+      "recovery": "Retry; edits serialize on the write lock."
+    },
+    {
+      "code": "validation_failed",
+      "category": "validation",
+      "message_template": "Package would trigger Word repair; save refused.",
+      "recovery": "Run docx_repair, then re-validate."
+    },
+    {
+      "code": "repair_incomplete",
+      "category": "validation",
+      "message_template": "docx_repair could not fix everything safely.",
+      "recovery": "Report the items in remaining to the user."
+    },
+    {
+      "code": "save_failed",
+      "category": "validation",
+      "message_template": "I/O failure writing output to {path}.",
+      "recovery": "Check the path and permissions."
+    },
+    {
+      "code": "render_unavailable",
+      "category": "render",
+      "message_template": "No render adapter installed.",
+      "recovery": "Fall back to docx_convert {to: \"md\"}; install LibreOffice for visual checks."
+    },
+    {
+      "code": "render_failed",
+      "category": "render",
+      "message_template": "Renderer errored on this document.",
+      "recovery": "See the renderer stderr summary in the response."
+    },
+    {
+      "code": "unsupported_format",
+      "category": "render",
+      "message_template": "Unknown convert target: {to}.",
+      "recovery": "Use md, html, pdf, or png."
+    },
+    {
+      "code": "placeholder_unfilled",
+      "category": "template",
+      "message_template": "Data missing for required placeholders (strict mode): {placeholders}.",
+      "recovery": "Extend data with the listed placeholders."
+    },
+    {
+      "code": "template_syntax",
+      "category": "template",
+      "message_template": "Malformed mustache syntax in the template at {placeholder}.",
+      "recovery": "Fix the offending placeholder identified in the response."
+    }
+  ]
+}

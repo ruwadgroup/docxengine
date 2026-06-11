@@ -1,0 +1,33 @@
+{
+  "name": "docx_validate",
+  "description": "Check the open document's package integrity (duplicate IDs, broken relationships, revision well-formedness) and report issues with fix hints. Run any time; docx_save runs it for you and refuses to write a broken package. Severity 'warning' issues never block a save.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "response_format": { "type": "string", "enum": ["concise", "detailed"], "default": "concise" }
+    },
+    "required": ["doc_id"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "valid": { "type": "boolean" },
+      "issues": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "severity": { "type": "string", "enum": ["error", "warning"] },
+            "part": { "type": "string" },
+            "message": { "type": "string" },
+            "fix_hint": { "type": "string" }
+          },
+          "required": ["severity", "part", "message"]
+        }
+      }
+    },
+    "required": ["valid", "issues"]
+  },
+  "errors": ["doc_not_found"]
+}

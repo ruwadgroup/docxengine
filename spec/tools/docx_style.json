@@ -1,0 +1,60 @@
+{
+  "name": "docx_style",
+  "description": "List, define, or apply named styles in one consolidated tool. Call op 'list' first — it reports the resolved cascade (based_on chains) — before defining a new style or applying one to a paragraph.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "op": { "type": "string", "enum": ["list", "define", "apply"] },
+      "anchor": {
+        "type": "string",
+        "description": "Paragraph anchor like 'P12#e7f8'. Target paragraph for op 'apply'."
+      },
+      "style": {
+        "type": "string",
+        "description": "Style name or id to apply (op 'apply')."
+      },
+      "name": {
+        "type": "string",
+        "description": "Name of the new style (op 'define')."
+      },
+      "based_on": {
+        "type": "string",
+        "description": "Existing style the new definition inherits from (op 'define')."
+      },
+      "props": {
+        "type": "object",
+        "description": "Formatting properties for op 'define': color, bold, italic, size, alignment, spacing_before, spacing_after, etc."
+      },
+      "track_changes": { "type": "boolean", "default": false },
+      "author": {
+        "type": "string",
+        "description": "Revision author when track_changes is true. Defaults from environment."
+      },
+      "response_format": { "type": "string", "enum": ["concise", "detailed"], "default": "concise" }
+    },
+    "required": ["doc_id", "op"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "styles": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "type": { "type": "string", "enum": ["paragraph", "character", "table", "numbering"] },
+            "based_on": { "type": "string" },
+            "in_use": { "type": "integer" }
+          }
+        }
+      },
+      "style_id": { "type": "string" },
+      "new_anchor": { "type": "string" },
+      "note": { "type": "string" }
+    }
+  },
+  "errors": ["doc_not_found", "anchor_stale", "anchor_invalid", "style_unknown"]
+}

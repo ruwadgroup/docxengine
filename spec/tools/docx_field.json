@@ -1,0 +1,41 @@
+{
+  "name": "docx_field",
+  "description": "Insert TOC or page-number field codes, or flag all fields for update. Only the field codes are written — computed values (page numbers, TOC entries) materialize when Word or LibreOffice renders, so never report them as known.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" },
+      "op": { "type": "string", "enum": ["insert_toc", "insert_page_number", "update"] },
+      "after": {
+        "type": "string",
+        "description": "Paragraph anchor like 'P12#e7f8'. Insert the field after this paragraph (op 'insert_toc')."
+      },
+      "levels": {
+        "type": "integer",
+        "default": 3,
+        "description": "Heading levels the TOC includes (op 'insert_toc')."
+      },
+      "scope": {
+        "type": "string",
+        "enum": ["header", "footer"],
+        "default": "footer",
+        "description": "Where the page number goes (op 'insert_page_number')."
+      },
+      "track_changes": { "type": "boolean", "default": false },
+      "author": {
+        "type": "string",
+        "description": "Revision author when track_changes is true. Defaults from environment."
+      }
+    },
+    "required": ["doc_id", "op"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "new_anchor": { "type": "string" },
+      "updated": { "type": "integer" },
+      "note": { "type": "string" }
+    }
+  },
+  "errors": ["doc_not_found", "anchor_stale", "anchor_invalid"]
+}

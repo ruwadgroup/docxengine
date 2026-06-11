@@ -1,0 +1,20 @@
+{
+  "name": "docx_repair",
+  "description": "Mechanically fix what is safe to fix in a broken package (orphaned references, missing content-type entries, duplicate ID renumbering) and report what was fixed and what remains. Run after docx_validate reports errors, then re-validate.",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "doc_id": { "type": "string" }
+    },
+    "required": ["doc_id"]
+  },
+  "result_schema": {
+    "type": "object",
+    "properties": {
+      "fixed": { "type": "array", "items": { "type": "string" } },
+      "remaining": { "type": "array", "items": { "type": "string" } }
+    },
+    "required": ["fixed", "remaining"]
+  },
+  "errors": ["doc_not_found", "repair_incomplete"]
+}
