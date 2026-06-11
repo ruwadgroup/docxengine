@@ -1,0 +1,10 @@
+{
+  "doc": "minimal",
+  "tool": "docx_read",
+  "args": { "anchor": "P4#a51c", "window": 1 },
+  "expect": {
+    "result": {
+      "content": "[P3#8775 H2] Definitions\n[P4#a51c] Confidential Information means all information disclosed by one party to the other.\n[P5#d27e] Each party shall protect Confidential Information with reasonable care."
+    }
+  }
+}

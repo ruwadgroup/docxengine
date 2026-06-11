@@ -1,0 +1,12 @@
+{
+  "anchors": {
+    "P1": "P1#a4b3",
+    "P2": "P2#f136",
+    "P3": "P3#e4ad"
+  },
+  "features": [
+    "corrupt-on-purpose: duplicate revision id (w:del id=5 and w:ins id=5, check d)"
+  ],
+  "notes": "Fully auto-repairable: docx_repair renumbers the second id=5 to max+1 (7); validate must then be clean.",
+  "producer": "DocxEngine make_fixtures.py 1.0 (hand-assembled synthetic OOXML)"
+}

@@ -1,0 +1,18 @@
+{
+  "doc": "minimal",
+  "tool": "docx_template_fill",
+  "args": {
+    "template": "conformance/corpus/template/input.docx",
+    "data": {
+      "Client": "GlobalTech & Co",
+      "EffectiveDate": "2026-07-01",
+      "obligations": [{ "text": "Deliver Q3 report" }, { "text": "Maintain the SLA" }]
+    }
+  },
+  "expect": {
+    "result": {
+      "loops_expanded": { "obligations": 2 },
+      "unfilled": ["Signatory"]
+    }
+  }
+}

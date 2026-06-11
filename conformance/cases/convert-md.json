@@ -1,0 +1,16 @@
+{
+  "doc": "minimal",
+  "tool": "docx_convert",
+  "args": { "to": "md" },
+  "expect": {
+    "result": {
+      "content": [
+        "$substr",
+        "# Master Services Agreement",
+        "## Definitions",
+        "Confidential Information means all information disclosed by one party to the other.",
+        "Each party shall protect Confidential Information with reasonable care."
+      ]
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "doc": "headers-footers",
+  "tool": "docx_section",
+  "args": {
+    "op": "set_geometry",
+    "section": "S1",
+    "page_size": "A4",
+    "orientation": "landscape"
+  },
+  "expect": {
+    "result": { "section": "S1" },
+    "invariants": ["no_word_repair"],
+    "output_contains": {
+      "word/document.xml": {
+        "present": ["w:w=\"16838\"", "w:h=\"11906\"", "w:orient=\"landscape\""],
+        "absent_in_input": ["w:orient="]
+      }
+    }
+  }
+}

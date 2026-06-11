@@ -1,0 +1,14 @@
+{
+  "anchors": {
+    "P1": "P1#1d80",
+    "P2": "P2#d337",
+    "P3": "P3#9181"
+  },
+  "features": [
+    "rsid-fragmented runs",
+    "formatting splits (bold run mid-sentence)",
+    "run coalescing targets (spec §4 worked example)"
+  ],
+  "notes": "P2 is the algorithms.md §4/§5 worked example; matches span run boundaries.",
+  "producer": "DocxEngine make_fixtures.py 1.0 (hand-assembled synthetic OOXML)"
+}

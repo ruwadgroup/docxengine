@@ -1,0 +1,9 @@
+{
+  "doc": "redlines",
+  "tool": "docx_save",
+  "args": {},
+  "expect": {
+    "result": { "ok": true, "validated": true },
+    "invariants": ["roundtrip", "no_word_repair", "revisions_preserved"]
+  }
+}

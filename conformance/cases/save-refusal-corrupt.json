@@ -1,0 +1,8 @@
+{
+  "doc": "corrupt-orphan-rel",
+  "tool": "docx_save",
+  "args": {},
+  "expect": {
+    "error": "validation_failed"
+  }
+}

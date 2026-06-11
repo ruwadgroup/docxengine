@@ -1,0 +1,10 @@
+{
+  "doc": "minimal",
+  "tool": "docx_create",
+  "args": {
+    "content_md": "# Quarterly Report\n\n## Summary\n\nRevenue grew **12%** this `quarter`.\n\n- First item\n- Second item\n"
+  },
+  "expect": {
+    "result": { "n_paragraphs": 5 }
+  }
+}

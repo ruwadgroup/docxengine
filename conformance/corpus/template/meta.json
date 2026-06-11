@@ -1,0 +1,19 @@
+{
+  "anchors": {
+    "P1": "P1#6259",
+    "P2": "P2#d0fa",
+    "P3": "P3#d216",
+    "P4": "P4#39e2",
+    "P5": "P5#1049",
+    "P6": "P6#2b44",
+    "P7": "P7#37d0",
+    "P8": "P8#8d19"
+  },
+  "features": [
+    "mustache {{Client}} split across two runs (coalesced match, spec §21)",
+    "loop section {{#obligations}}…{{/obligations}} over whole paragraphs",
+    "unfilled placeholder left verbatim ({{Signatory}} when data omits it)"
+  ],
+  "notes": "Placeholders: Client (split runs), EffectiveDate, obligations (loop, item key 'text'), Signatory. Fill with obligations=[…] to clone P5; omit Signatory to exercise the unfilled list.",
+  "producer": "DocxEngine make_fixtures.py 1.0 (hand-assembled synthetic OOXML)"
+}

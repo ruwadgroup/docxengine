@@ -1,0 +1,28 @@
+{
+  "doc": "minimal",
+  "tool": "docx_comment",
+  "args": {
+    "op": "add",
+    "anchor": "P4#a51c",
+    "text": "Should this be mutual?"
+  },
+  "expect": {
+    "result": { "comment_id": "C0", "anchor": "P4#a51c" },
+    "invariants": ["no_word_repair"],
+    "output_contains": {
+      "word/comments.xml": {
+        "present": [
+          "w:author=\"Harness\"",
+          "w:date=\"2026-06-10T00:00:00Z\"",
+          "w:initials=\"H\"",
+          "Should this be mutual?"
+        ],
+        "absent_in_input": ["Should this be mutual?"]
+      },
+      "word/document.xml": {
+        "present": ["<w:commentRangeStart w:id=\"0\"/>", "<w:commentReference w:id=\"0\"/>"],
+        "absent_in_input": ["commentReference"]
+      }
+    }
+  }
+}

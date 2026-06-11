@@ -1,0 +1,14 @@
+{
+  "doc": "minimal",
+  "tool": "docx_outline",
+  "args": {},
+  "expect": {
+    "result": {
+      "outline": [
+        { "anchor": "P1#515a", "level": 1, "text": "Master Services Agreement" },
+        { "anchor": "P3#8775", "level": 2, "text": "Definitions" }
+      ],
+      "tables": []
+    }
+  }
+}

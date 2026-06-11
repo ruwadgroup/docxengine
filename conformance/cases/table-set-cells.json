@@ -1,0 +1,22 @@
+{
+  "doc": "tables",
+  "tool": "docx_table",
+  "args": {
+    "op": "set_cells",
+    "anchor": "T2",
+    "cells": [
+      { "r": 0, "c": 0, "text": "updated-A1" },
+      { "ref": "C3", "text": "updated-C3" }
+    ]
+  },
+  "expect": {
+    "result": {},
+    "invariants": ["no_word_repair"],
+    "output_contains": {
+      "word/document.xml": {
+        "present": ["updated-A1", "updated-C3"],
+        "absent_in_input": ["updated-A1", "updated-C3"]
+      }
+    }
+  }
+}

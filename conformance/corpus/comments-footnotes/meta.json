@@ -1,0 +1,14 @@
+{
+  "anchors": {
+    "P1": "P1#ac0e",
+    "P2": "P2#e5c7",
+    "P3": "P3#734d"
+  },
+  "features": [
+    "comments.xml with commentRangeStart/End + commentReference",
+    "footnotes.xml with separator/continuationSeparator + real footnote",
+    "passthrough fidelity (untouched parts must survive byte-for-byte)"
+  ],
+  "notes": "Comment id=1 and footnote id=2 resolve in both directions (validator check e).",
+  "producer": "DocxEngine make_fixtures.py 1.0 (hand-assembled synthetic OOXML)"
+}

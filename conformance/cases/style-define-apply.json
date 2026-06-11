@@ -1,0 +1,39 @@
+{
+  "doc": "minimal",
+  "setup": [
+    {
+      "tool": "docx_style",
+      "args": {
+        "op": "define",
+        "name": "Clause",
+        "based_on": "Normal",
+        "props": { "size": 11, "bold": true, "spacing_after": 6, "alignment": "justify" }
+      }
+    }
+  ],
+  "tool": "docx_style",
+  "args": {
+    "op": "apply",
+    "anchor": "P2#8137",
+    "style": "Clause"
+  },
+  "expect": {
+    "result": { "new_anchor": "P2#8137" },
+    "invariants": ["no_word_repair"],
+    "output_contains": {
+      "word/styles.xml": {
+        "present": [
+          "w:styleId=\"Clause\"",
+          "<w:jc w:val=\"both\"/>",
+          "<w:b/>",
+          "<w:sz w:val=\"22\"/>"
+        ],
+        "absent_in_input": ["Clause"]
+      },
+      "word/document.xml": {
+        "present": ["<w:pStyle w:val=\"Clause\"/>"],
+        "absent_in_input": ["Clause"]
+      }
+    }
+  }
+}

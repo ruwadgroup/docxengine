@@ -1,0 +1,15 @@
+{
+  "anchors": {
+    "P1": "P1#9263",
+    "P2": "P2#7b4b",
+    "P3": "P3#f148"
+  },
+  "features": [
+    "multi-author tracked changes",
+    "w:ins",
+    "w:del",
+    "w:delText"
+  ],
+  "notes": "Alice owns revisions 1-2 (P2), Bob owns 3-4 (P3). Dates: Alice 2026-01-15, Bob 2026-02-20.",
+  "producer": "DocxEngine make_fixtures.py 1.0 (hand-assembled synthetic OOXML)"
+}

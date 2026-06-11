@@ -1,0 +1,28 @@
+{
+  "doc": "minimal",
+  "tool": "docx_list",
+  "args": {
+    "op": "create",
+    "after": "P5#d27e",
+    "kind": "ol",
+    "items": [
+      { "text": "Phase one", "level": 0 },
+      { "text": "Phase two", "level": 0 }
+    ]
+  },
+  "expect": {
+    "result": { "new_anchors": ["P6#2432", "P7#3a89"] },
+    "invariants": ["no_word_repair"],
+    "output_contains": {
+      "word/numbering.xml": ["abstractNum", "numFmt w:val=\"decimal\""],
+      "word/document.xml": {
+        "present": ["<w:numPr>", "ListParagraph", "Phase one", "Phase two"],
+        "absent_in_input": ["<w:numPr>"]
+      },
+      "[Content_Types].xml": {
+        "present": ["numbering+xml"],
+        "absent_in_input": ["numbering+xml"]
+      }
+    }
+  }
+}

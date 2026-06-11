@@ -1,0 +1,17 @@
+{
+  "anchors": {
+    "P1": "P1#515a",
+    "P2": "P2#8137",
+    "P3": "P3#8775",
+    "P4": "P4#a51c",
+    "P5": "P5#d27e"
+  },
+  "features": [
+    "headings",
+    "styles.xml",
+    "style cascade (basedOn)",
+    "plain paragraphs"
+  ],
+  "notes": "Smallest clean document: Heading1/Heading2 + three body paragraphs.",
+  "producer": "DocxEngine make_fixtures.py 1.0 (hand-assembled synthetic OOXML)"
+}

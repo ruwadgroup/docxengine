@@ -1,0 +1,21 @@
+{
+  "doc": "comments-footnotes",
+  "tool": "docx_comment",
+  "args": {
+    "op": "delete",
+    "comment_id": "C1"
+  },
+  "expect": {
+    "result": {},
+    "invariants": ["no_word_repair", "validate_clean"],
+    "output_contains": {
+      "word/document.xml": {
+        "present": ["nine percent"],
+        "absent": ["<w:commentReference w:id=\"1\"/>", "<w:commentRangeStart w:id=\"1\"/>"]
+      },
+      "word/comments.xml": {
+        "absent": ["Please verify this figure."]
+      }
+    }
+  }
+}

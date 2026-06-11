@@ -1,0 +1,18 @@
+{
+  "anchors": {
+    "P1": "P1#a3ec",
+    "P2": "P2#aa73",
+    "P3": "P3#0576",
+    "P4": "P4#ef27",
+    "P5": "P5#fd10",
+    "P6": "P6#c157",
+    "P7": "P7#4eca"
+  },
+  "features": [
+    "numbering.xml with ordered (decimal/lowerLetter) + bullet abstractNums (spec §17)",
+    "two-level ol (numId=1) then a ul (numId=2)",
+    "ListParagraph style ensured"
+  ],
+  "notes": "P2..P4 are ol items (P3 is ilvl=1); P6..P7 are ul items. numId=1 -> abstractNum 0 (ordered), numId=2 -> abstractNum 1 (bullet).",
+  "producer": "DocxEngine make_fixtures.py 1.0 (hand-assembled synthetic OOXML)"
+}

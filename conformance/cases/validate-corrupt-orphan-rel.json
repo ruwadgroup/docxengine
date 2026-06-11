@@ -1,0 +1,11 @@
+{
+  "doc": "corrupt-orphan-rel",
+  "tool": "docx_validate",
+  "args": {},
+  "expect": {
+    "result": {
+      "valid": false,
+      "issues": ["$contains", { "severity": "error" }, { "severity": "error" }]
+    }
+  }
+}

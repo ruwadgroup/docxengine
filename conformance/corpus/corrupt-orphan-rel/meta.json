@@ -1,0 +1,12 @@
+{
+  "anchors": {
+    "P1": "P1#a638",
+    "P2": "P2#2769"
+  },
+  "features": [
+    "corrupt-on-purpose: relationship target missing from package (rId7, check c)",
+    "corrupt-on-purpose: dangling r:id reference in document.xml (rId8, check b)"
+  ],
+  "notes": "Validate must report 2 errors. rId7 is mechanically repairable (drop); rId8 is not, so docx_save must refuse with validation_failed.",
+  "producer": "DocxEngine make_fixtures.py 1.0 (hand-assembled synthetic OOXML)"
+}

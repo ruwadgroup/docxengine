@@ -1,0 +1,9 @@
+{
+  "doc": "corrupt-dup-ids",
+  "tool": "docx_repair",
+  "args": {},
+  "expect": {
+    "result": { "remaining": [] },
+    "invariants": ["validate_clean", "no_word_repair"]
+  }
+}

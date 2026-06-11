@@ -1,0 +1,14 @@
+{
+  "anchors": {
+    "P1": "P1#d6e2",
+    "P2": "P2#e3b0",
+    "P3": "P3#b01f"
+  },
+  "features": [
+    "inline drawing run -> a:blip r:embed -> word/media/image1.png (spec §19)",
+    "png Default content-type + image relationship",
+    "M1 = first drawing reference in document order (spec §13)"
+  ],
+  "notes": "One embedded 1x1 PNG (69 bytes) as an inline drawing in P2. extent 457200x457200 EMU (1.27 cm square). media_id M1 for extract/replace.",
+  "producer": "DocxEngine make_fixtures.py 1.0 (hand-assembled synthetic OOXML)"
+}

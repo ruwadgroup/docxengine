@@ -1,0 +1,14 @@
+{
+  "anchors": {
+    "P1": "P1#75a3",
+    "P2": "P2#943b",
+    "P3": "P3#1d26"
+  },
+  "features": [
+    "body-level w:tbl with header row (shd D9D9D9 + bold, spec §14)",
+    "plain 3x3 w:tbl (T-sequence independent of P-sequence, spec §13)",
+    "TableGrid style ensured in styles.xml"
+  ],
+  "notes": "Two body tables: T1 = header table (Term/Value/Notes), T2 = 3x3 grid. Body paragraphs P1..P3 are not shifted by the tables (spec §13).",
+  "producer": "DocxEngine make_fixtures.py 1.0 (hand-assembled synthetic OOXML)"
+}

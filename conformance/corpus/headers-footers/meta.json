@@ -1,0 +1,12 @@
+{
+  "anchors": {
+    "P1": "P1#8f67",
+    "P2": "P2#3164"
+  },
+  "features": [
+    "single section with a default w:headerReference -> word/header1.xml (spec §15)",
+    "header part covered by content-type Override + document rel"
+  ],
+  "notes": "One body section (S1). Letter page size 12240x15840. set_geometry / set_footer / insert_break target S1.",
+  "producer": "DocxEngine make_fixtures.py 1.0 (hand-assembled synthetic OOXML)"
+}
