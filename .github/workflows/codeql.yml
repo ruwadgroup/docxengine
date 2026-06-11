@@ -1,12 +1,14 @@
 name: CodeQL
 
+# Code-scanning upload requires a public repo (or GitHub Advanced Security on
+# private repos), so the job is gated on visibility — it activates automatically
+# when the repository goes public. Re-add a cron trigger then if desired.
+
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-  schedule:
-    - cron: "30 4 * * 1"
 
 permissions:
   contents: read
@@ -15,6 +17,7 @@ permissions:
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
+    if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
