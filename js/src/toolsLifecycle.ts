@@ -82,3 +82,26 @@ export function docxSave(session: Session, args: DocxSaveArgs): DocxSaveResult {
   doc.markSaved();
   return { ok: true, validated: true, bytes: nodeFs().statSync(args.path).size };
 }
+
+/**
+ * Validate (§8 gate) then return the document's .docx bytes — no filesystem.
+ *
+ * The bytes-out counterpart to {@link docxSave} for embedding contexts: the
+ * browser, serverless, blob storage — anywhere persistence is the host's job.
+ * Not a wire tool (returning base64 through an agent's context is token waste;
+ * the host already holds the `Session`). Refuses an error-severity package
+ * exactly as `docxSave` does.
+ */
+export function exportBytes(session: Session, docId: string): Uint8Array {
+  const doc = session.get(docId);
+  const errors = validateDoc(doc).filter((issue) => issue.severity === "error");
+  if (errors.length > 0) {
+    throw new ToolError("validation_failed", "Package would trigger Word repair; export refused.", [
+      "Run docx_repair, then re-validate.",
+      ...errors.map((issue) => issue.message),
+    ]);
+  }
+  const bytes = doc.pkg.toBytes();
+  doc.markSaved();
+  return bytes;
+}

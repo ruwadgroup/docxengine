@@ -4,42 +4,55 @@
 npm install @docxengine/core
 ```
 
-Node ≥22; create/read paths also run in the browser. Fully typed.
+Node ≥22, fully typed. The core is **browser-safe**: open/edit/read/search/convert-to-md and `toBytes()` run on `Uint8Array` with zero filesystem dependency — only path-based `open`/`save` and the render adapter are Node-only.
 
-## Two surfaces
+The library is **storage-agnostic** by design — documents are in-memory handles you persist explicitly (a path, or raw bytes). That is distinct from the **MCP server**, which is file-first (every tool takes a `path` and saves automatically; see [MCP server](../mcp/server.md)). A browser has no filesystem, so the library never assumes one.
 
-### 1. The contract surface: `call()`
+Two surfaces, for two jobs.
 
-Identical names, JSON shapes, and errors to the Python package and the MCP server:
+## 1. Embed in an agent
+
+Give a model the tool schemas, run a loop on a `Session` you own, then persist however your app wants:
 
 ```ts
-import { call } from "@docxengine/core";
+import { Session, call, anthropicTools, exportBytes } from "@docxengine/core";
 
-const doc = await call("docx_open", { path: "contract.docx" });
-await call("docx_replace", {
-  doc_id: doc.doc_id,
-  old: "Acme Corp",
-  new: "GlobalTech Inc",
-  all: true,
-  track_changes: true,
-  author: "Claude",
-});
-await call("docx_save", { doc_id: doc.doc_id, path: "out.docx" });
+const tools = anthropicTools(); // or openaiTools() — the spec, as provider schemas
+
+const session = new Session(); // one per request/tab, not a global
+const opened = (await call("docx_open", { bytes: b64Docx })) as { doc_id: string }; // bytes in
+// ... the model emits tool calls; dispatch each ...
+await call("docx_replace", { doc_id: opened.doc_id, old: "Acme", new: "GlobalTech", all: true });
+
+const data = exportBytes(session, opened.doc_id); // validated .docx bytes, no fs
+// download in the browser, upload, or return in a response — your call
 ```
 
-### 2. The native surface
+> `call()` uses a module-level session for quick scripts. For multi-tenant servers, dispatch against an explicit `Session` (as the agent loop does) so handles don't accumulate process-wide. `exportBytes` runs the same validation gate as a save but returns bytes — persistence is the host's job.
+
+## 2. Manipulate documents in code
+
+`Document` is a typed, full-coverage handle over the same tools. Each instance owns a **private session**, so many can run side by side (multi-tenant server, browser tab):
 
 ```ts
 import { Document } from "@docxengine/core";
 
-const doc = await Document.open("contract.docx");
+const doc = await Document.open("contract.docx"); // or Document.open(uint8Array)
 for (const p of doc.paragraphs()) {
-  if (p.style === "Heading 2") console.log(p.anchor, p.text);
+  if (p.style === "Heading2") console.log(p.anchor, p.text); // the w:pStyle styleId, or null
 }
-const p = doc.find("Confidential Information");
-await p.replace("five (5) years", "three (3) years", { trackChanges: true, author: "Claude" });
-await doc.save("out.docx");
+
+const p = doc.find("Confidential Information"); // -> DocumentParagraph | null
+if (p)
+  await p.replace("five (5) years", "three (3) years", { trackChanges: true, author: "Claude" });
+
+await doc.save("out.docx"); // validation gate + atomic write (Node)
+const bytes = doc.toBytes(); // ...or get the bytes, no filesystem (browser-safe)
 ```
+
+Every tool has a method — `outline / read / search / insert / delete / editParagraph / revision / comment / table / style / format / list / section / media / field / validate / repair / convert / renderPreview`. A `DocumentParagraph` adds the anchor-scoped primitives `replace / edit / insertAfter / insertBefore / delete`. Start fresh with `Document.create({ contentMd })`, fill a template with `Document.fillTemplate(pathOrBytes, data)`, share a session with `{ session }`, or wrap a handle with `Document.attach(session, docId)`.
+
+> Paragraphs are throwaway views: after any edit, re-fetch via `paragraphs()` / `find()`. A stale anchor raises `anchor_stale`, the normal recovery signal.
 
 ## Errors
 
@@ -66,7 +79,3 @@ const atools = anthropicTools(); // ready for Anthropic tool use
 ```
 
 Any other framework consumes the published JSON Schemas in [`spec/`](../../spec/) directly and dispatches to `call()`.
-
-## Browser
-
-The OPC model and projector run on `Uint8Array` inputs in the browser (open/read/search/convert-to-md). Filesystem-touching tools (`docx_open` by path, `docx_save` by path) and the render adapter are Node-only.

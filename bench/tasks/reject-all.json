@@ -5,8 +5,7 @@
   "script": [
     { "tool": "docx_revision", "args": { "op": "list" } },
     { "tool": "docx_revision", "args": { "op": "reject_all" } },
-    { "tool": "docx_validate", "args": {} },
-    { "tool": "docx_save", "args": { "path": "{out}" } }
+    { "tool": "docx_validate", "args": {} }
   ],
   "checks": [
     { "type": "doc_text_contains", "text": "ten percent" },

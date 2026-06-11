@@ -17,7 +17,7 @@
  * splice output is deterministic across languages.
  */
 import { ToolError } from "./errors.js";
-import type { Session } from "./session.js";
+import type { DocHandle, Session } from "./session.js";
 import {
   type ElementSlice,
   childElements,
@@ -536,16 +536,31 @@ export function docxTemplateFill(
     ]);
   }
   const doc = session.open(args.template);
-  const data = (args.data ?? {}) as Scope;
+  return fillDoc(doc, args.data, { strict: args.strict === true });
+}
+
+/**
+ * Fill `doc` in place from mustache template `data` (§21); returns fill stats.
+ *
+ * The in-language core shared by {@link docxTemplateFill} and
+ * `Document.fillTemplate` — operates on an already-open handle so the caller
+ * controls the source (path *or* bytes) and the session.
+ */
+export function fillDoc(
+  doc: DocHandle,
+  data: Record<string, unknown> | undefined,
+  opts: { strict?: boolean } = {},
+): DocxTemplateFillResult {
+  const scope = (data ?? {}) as Scope;
   const state: FillState = {
     filled: 0,
     loopsExpanded: new Map(),
     unfilled: [],
     unfilledSet: new Set(),
-    strict: args.strict === true,
+    strict: opts.strict === true,
   };
 
-  const filled = processDocument(doc.documentXml(), data, state);
+  const filled = processDocument(doc.documentXml(), scope, state);
   doc.pkg.setPart(doc.documentPartName, filled);
   doc.invalidate();
 

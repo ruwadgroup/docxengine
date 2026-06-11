@@ -255,7 +255,8 @@ export interface DocxRenderPreviewArgs {
 
 export interface PreviewPage {
   page: number;
-  image: string;
+  /** Resource link to a rendered image; present only when a renderer produced one. */
+  image?: string;
 }
 
 export interface DocxRenderPreviewResult {
@@ -279,12 +280,13 @@ export function renderPreview(
     const fallback = structuralPreview(doc);
     const pages = pageNumbers(args.pages, fallback.estimatedPages);
     return {
-      pages: pages.map((page) => ({ page, image: `docx://${doc.id}/preview/page-${page}.png` })),
+      pages: pages.map((page) => ({ page })),
       renderer: "structural",
       structural: fallback.structural,
       note:
-        "No renderer detected; structural preview shows the resolved projection " +
-        `(estimated ${fallback.estimatedPages} page${fallback.estimatedPages === 1 ? "" : "s"}).`,
+        "No render adapter (LibreOffice/soffice) detected — install LibreOffice or set " +
+        "DOCXENGINE_SOFFICE for rendered page images. Showing the structural projection " +
+        `(estimated ${fallback.estimatedPages} page${fallback.estimatedPages === 1 ? "" : "s"}); no image links are returned.`,
     };
   }
   // A real renderer is available: produce a PDF (the page count is authoritative

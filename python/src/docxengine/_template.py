@@ -23,7 +23,7 @@ from dataclasses import dataclass, field
 
 from . import _xml
 from ._errors import ToolError
-from ._session import Session
+from ._session import OpenDocument, Session
 
 _TAG_RE = re.compile(r"\{\{([#^/!]?)\s*([^{}]*?)\s*\}\}")
 
@@ -453,6 +453,18 @@ def docx_template_fill(
             ["Only the mustache subset is supported."],
         )
     doc = session.open_doc(template)
+    return fill_document(doc, data, strict=strict is True)
+
+
+def fill_document(
+    doc: OpenDocument, data: dict[str, object] | None, *, strict: bool = False
+) -> dict[str, object]:
+    """Fill ``doc`` in place from mustache template ``data`` (§21); returns fill stats.
+
+    The in-language core shared by :func:`docx_template_fill` and
+    ``Document.fill_template`` — operates on an already-open doc so the caller
+    controls the source (path *or* bytes) and the session.
+    """
     payload: object = data if data is not None else {}
     state = FillState(strict=strict is True)
 

@@ -97,7 +97,7 @@ describe("render adapter detection", () => {
 });
 
 describe("structural fallback (no renderer)", () => {
-  it("docx_render_preview returns the structural projection + resource links", () => {
+  it("docx_render_preview returns the structural projection without image links", () => {
     setEnv("DOCXENGINE_SOFFICE", undefined);
     setEnv("PATH", "/nonexistent-bin-dir");
     const { session, docId } = newDoc();
@@ -106,7 +106,9 @@ describe("structural fallback (no renderer)", () => {
     expect(res.structural).toContain("[P1#");
     expect(res.structural).toContain("Title");
     expect(res.pages.length).toBeGreaterThanOrEqual(1);
-    expect(res.pages[0]?.image).toBe(`docx://${docId}/preview/page-1.png`);
+    // No renderer ran, so no fake image links — just the page numbers.
+    expect(res.pages.every((p) => p.image === undefined)).toBe(true);
+    expect(res.note).toContain("DOCXENGINE_SOFFICE");
   });
 
   it("structuralPreview estimates pages as ceil(chars/1800)", () => {

@@ -138,7 +138,12 @@ pnpm install && pnpm --dir js build
 
 # MCP (Claude Desktop / any MCP client) — stdio
 docxengine-mcp
+
+# Claude Code
+claude mcp add docx -- docxengine-mcp
 ```
+
+Over MCP the engine is **file-first**: tools take a file `path` and every edit is validated and saved back automatically — no handles to track, no save step. The Python/JS packages keep an in-memory `doc_id`/bytes handle (the right fit for embedding, including browser JS); see the [SDK docs](docs/sdks/python.md).
 
 ## Documentation
 
@@ -170,7 +175,7 @@ docxengine/
 
 ## Roadmap & status
 
-**Phases 0–2 complete; current phase: 3 — Hardening.** All 24 tools are implemented and conformance-tested in both languages: 427 Python tests, 328 TS tests, 31/31 cross-implementation parity cases, and a 10-task agent benchmark passing end-to-end over MCP with zero tool errors and zero Word-repair events. Remaining: benchmark comparisons against the python-docx and raw-XML baselines, fuzzing, large-document streaming, and cross-renderer fidelity. Full plan with decision thresholds: [ROADMAP.md](ROADMAP.md).
+**Phases 0–2 complete; current phase: 3 — Hardening.** All 24 tools are implemented and conformance-tested in both languages: 455 Python tests, 342 TS tests, 31/31 cross-implementation parity cases, and a 10-task agent benchmark passing end-to-end over the file-first MCP server with zero tool errors and zero Word-repair events. Remaining: benchmark comparisons against the python-docx and raw-XML baselines, fuzzing, large-document streaming, and cross-renderer fidelity. Full plan with decision thresholds: [ROADMAP.md](ROADMAP.md).
 
 ## Contributing
 

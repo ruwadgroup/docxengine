@@ -182,9 +182,9 @@ def _cell_xml(width: int, text: str, *, header: bool = False) -> str:
     if not text:
         body = "<w:p/>"
     elif header:
-        body = f"<w:p><w:r><w:rPr><w:b/></w:rPr>{_xml.emit_text_element(text)}</w:r></w:p>"
+        body = f"<w:p>{_xml.emit_text_runs(text, '<w:rPr><w:b/></w:rPr>')}</w:p>"
     else:
-        body = f"<w:p><w:r>{_xml.emit_text_element(text)}</w:r></w:p>"
+        body = f"<w:p>{_xml.emit_text_runs(text)}</w:p>"
     return f"<w:tc>{tcpr}{body}</w:tc>"
 
 
@@ -318,7 +318,7 @@ def _set_cells(package: Package, anchor: str | None, cells: Sequence[Mapping[str
             )
             if ppr is not None:
                 ppr_xml = data[ppr.start : ppr.end].decode("utf-8")
-        run = f"<w:r>{_xml.emit_text_element(text)}</w:r>" if text else ""
+        run = _xml.emit_text_runs(text) if text else ""
         new_p = f"<w:p>{ppr_xml}{run}</w:p>"
         tcpr_xml = data[tcpr.start : tcpr.end].decode("utf-8") if tcpr is not None else ""
         new_inner = f"{tcpr_xml}{new_p}".encode()
@@ -574,7 +574,8 @@ def _merge(package: Package, anchor: str | None, range_ref: str | None) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _style_table(package: Package, anchor: str | None, style: str | None) -> None:
+def _apply_named_style(package: Package, anchor: str | None) -> None:
+    """Legacy ``op:"style"`` (no props): stamp the Table Grid named style."""
     _parts.ensure_style(package, "TableGrid")
     main = package.main_document_part()
     data = package.part(main)
@@ -604,6 +605,150 @@ def _style_table(package: Package, anchor: str | None, style: str | None) -> Non
     package.set_part(main, data)
 
 
+# -- comprehensive table formatting (op:"style" with props, §14) --------------
+
+_BORDER_SIDES = ("top", "left", "bottom", "right", "insideH", "insideV")
+
+
+def _hex(color: object) -> str:
+    """A 6-hex color with any leading ``#`` stripped; ``auto`` for non-strings."""
+    if isinstance(color, str) and color:
+        return color[1:] if color.startswith("#") else color
+    return "auto"
+
+
+def _tbl_borders_xml(on: object, weight: object, color: object) -> str:
+    if on:
+        sz = int(weight) if isinstance(weight, (int, float)) else 4
+        attrs = f'w:val="single" w:sz="{sz}" w:space="0" w:color="{_hex(color)}"'
+    else:
+        attrs = 'w:val="none" w:sz="0" w:space="0" w:color="auto"'
+    sides = "".join(f"<w:{side} {attrs}/>" for side in _BORDER_SIDES)
+    return f"<w:tblBorders>{sides}</w:tblBorders>"
+
+
+def _shd_xml(fill: object) -> str:
+    return f'<w:shd w:val="clear" w:color="auto" w:fill="{_hex(fill)}"/>'
+
+
+def _child_xml(data: bytes, parent: _xml.Span | None, name: str) -> str | None:
+    """The raw XML of ``parent``'s first direct ``name`` child, or ``None``."""
+    el = _first(data, parent, name)
+    return data[el.start : el.end].decode("utf-8") if el is not None else None
+
+
+def _build_tblpr(
+    data: bytes, tbl_pr: _xml.Span | None, style: str | None, props: Mapping[str, object]
+) -> str:
+    """Canonical-ordered ``<w:tblPr>`` applying ``props`` (preserving tblStyle/tblLook)."""
+    parts: list[str] = []
+    style_xml = '<w:tblStyle w:val="TableGrid"/>' if style is not None else _child_xml(
+        data, tbl_pr, "w:tblStyle"
+    )
+    if style_xml:
+        parts.append(style_xml)
+    width_pct = props.get("width_pct")
+    if isinstance(width_pct, (int, float)):
+        parts.append(f'<w:tblW w:w="{round(float(width_pct) * 50)}" w:type="pct"/>')
+    else:
+        parts.append('<w:tblW w:w="0" w:type="auto"/>')
+    align = props.get("align")
+    if isinstance(align, str) and align:
+        parts.append(f'<w:jc w:val="{align}"/>')
+    if "borders" in props:
+        parts.append(
+            _tbl_borders_xml(
+                props["borders"], props.get("border_weight"), props.get("border_color")
+            )
+        )
+    if props.get("col_widths"):
+        parts.append('<w:tblLayout w:type="fixed"/>')
+    look_xml = _child_xml(data, tbl_pr, "w:tblLook")
+    if look_xml:
+        parts.append(look_xml)
+    return f"<w:tblPr>{''.join(parts)}</w:tblPr>"
+
+
+def _cell_shd_edit(
+    data: bytes, tc: _xml.Span, fill: object
+) -> tuple[int, int, bytes] | None:
+    """A non-overlapping splice that sets (``fill``) or removes (``None``) a cell's shading."""
+    tcpr = _first(data, tc, "w:tcPr")
+    shd = _first(data, tcpr, "w:shd")
+    if fill is None:
+        return (shd.start, shd.end, b"") if shd is not None else None
+    shd_bytes = _shd_xml(fill).encode()
+    if shd is not None:
+        return (shd.start, shd.end, shd_bytes)
+    if tcpr is not None:
+        tcw = _first(data, tcpr, "w:tcW")
+        pos = tcw.end if tcw is not None else tcpr.inner_start
+        return (pos, pos, shd_bytes)
+    return (tc.inner_start, tc.inner_start, f"<w:tcPr>{_shd_xml(fill)}</w:tcPr>".encode())
+
+
+def _shading_edits(
+    data: bytes, tbl: _xml.Span, shading: Mapping[str, object]
+) -> list[tuple[int, int, bytes]]:
+    rows = _direct(data, tbl, "w:tr")
+    by_cell: dict[int, tuple[_xml.Span, object]] = {}
+    if "all" in shading:
+        for row in rows:
+            for tc in _direct(data, row, "w:tc"):
+                by_cell[tc.start] = (tc, shading["all"])
+    if "header" in shading and rows:  # header overrides "all" for the first row
+        for tc in _direct(data, rows[0], "w:tc"):
+            by_cell[tc.start] = (tc, shading["header"])
+    edits = [_cell_shd_edit(data, tc, fill) for tc, fill in by_cell.values()]
+    return [e for e in edits if e is not None]
+
+
+def _style_table(
+    package: Package, anchor: str | None, style: str | None, props: Mapping[str, object] | None
+) -> None:
+    """``op:"style"``: a named style (legacy) or direct ``props`` formatting (§14)."""
+    if props is None:
+        _apply_named_style(package, anchor)
+        return
+    main = package.main_document_part()
+    data = package.part(main)
+    tbl = locate_table(package, anchor)
+    tbl_pr = next(
+        _xml.iter_elements(data, tbl.inner_start, tbl.inner_end, names=("w:tblPr",), max_depth=1),
+        None,
+    )
+    edits: list[tuple[int, int, bytes]] = []
+    new_tblpr = _build_tblpr(data, tbl_pr, style, props).encode("utf-8")
+    if tbl_pr is not None:
+        edits.append((tbl_pr.start, tbl_pr.end, new_tblpr))
+    else:
+        edits.append((tbl.inner_start, tbl.inner_start, new_tblpr))
+    col_widths = props.get("col_widths")
+    if isinstance(col_widths, Sequence) and col_widths:
+        grid = next(
+            _xml.iter_elements(
+                data, tbl.inner_start, tbl.inner_end, names=("w:tblGrid",), max_depth=1
+            ),
+            None,
+        )
+        cols = "".join(f'<w:gridCol w:w="{int(w)}"/>' for w in col_widths)
+        new_grid = f"<w:tblGrid>{cols}</w:tblGrid>".encode()
+        if grid is not None:
+            edits.append((grid.start, grid.end, new_grid))
+    shading = props.get("shading")
+    if isinstance(shading, Mapping):
+        edits.extend(_shading_edits(data, tbl, shading))
+    package.set_part(main, _xml.splice(data, sorted(edits)))
+
+
+def _delete_table(package: Package, anchor: str | None) -> None:
+    """Remove a whole ``<w:tbl>`` by its ``T#`` anchor (§14). No tracked-change form."""
+    main = package.main_document_part()
+    data = package.part(main)
+    tbl = locate_table(package, anchor)
+    package.set_part(main, _xml.splice(data, [(tbl.start, tbl.end, b"")]))
+
+
 # ---------------------------------------------------------------------------
 # docx_table
 # ---------------------------------------------------------------------------
@@ -624,10 +769,11 @@ def docx_table(
     at: int | None = None,
     range: str | None = None,  # noqa: A002 - wire name pinned by the tool schema
     style: str | None = None,
+    props: Mapping[str, object] | None = None,
     track_changes: bool = False,
     author: str | None = None,
 ) -> dict[str, object]:
-    """All table operations (§14): create, set_cells, insert/delete row/col, merge, style."""
+    """All §14 table ops: create, set_cells, insert/delete row/col, merge, style, delete."""
     doc = session.get(doc_id)
     package = doc.package
     if op == "create":
@@ -661,7 +807,11 @@ def docx_table(
         doc.mark_dirty()
         return {"note": "Merged cells."}
     if op == "style":
-        _style_table(package, anchor, style)
+        _style_table(package, anchor, style, props)
         doc.mark_dirty()
         return {"note": "Styled table."}
+    if op == "delete":
+        _delete_table(package, anchor)
+        doc.mark_dirty()
+        return {"note": f"Deleted table {anchor}."}
     raise _table_invalid(f"Unknown table op: {op}.")

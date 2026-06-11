@@ -45,3 +45,25 @@ def docx_save(session: Session, *, doc_id: str, path: str) -> dict[str, object]:
     doc.package.save(path)
     doc.mark_saved()
     return {"ok": True, "validated": True, "bytes": os.path.getsize(path)}
+
+
+def export_bytes(session: Session, *, doc_id: str) -> bytes:
+    """Validate (§8 gate) then return the document's .docx bytes (no filesystem).
+
+    The bytes-out counterpart to :func:`docx_save` for embedding contexts —
+    browser JS, serverless, blob storage — where persistence is the host's job.
+    Not a wire tool: returning base64 through an agent's context is token waste;
+    the host already holds the :class:`Session`. Refuses an error-severity
+    package exactly as ``docx_save`` does.
+    """
+    doc = session.get(doc_id)
+    errors = [issue for issue in validate_package(doc.package) if issue.severity == "error"]
+    if errors:
+        raise ToolError(
+            "validation_failed",
+            "Package would trigger Word repair; export refused.",
+            ["Run docx_repair, then re-validate.", *(issue.message for issue in errors)],
+        )
+    data = doc.package.to_bytes()
+    doc.mark_saved()
+    return data

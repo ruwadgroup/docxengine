@@ -10,9 +10,11 @@ For each task in ``bench/tasks/*.json`` the runner:
    with ``DOCXENGINE_FIXED_DATE=2026-01-01T00:00:00Z`` so tracked-change output
    is deterministic,
 3. drives it over JSON-RPC 2.0 (newline-framed): ``initialize`` then the task's
-   ``tools/call`` sequence — an implicit ``docx_open`` of the fixture first (for
-   corpus tasks), then each scripted step with the live ``doc_id`` injected and
-   the ``{out}`` / ``{template}`` placeholders substituted,
+   ``tools/call`` sequence over the path-based facade — each scripted step gets
+   the output ``path`` injected and the ``{out}`` / ``{template}`` placeholders
+   substituted. Corpus tasks edit a fresh copy of the fixture at ``{out}`` in
+   place (edits persist per call; there is no save step), and the template task
+   writes ``{out}`` from the template,
 4. collects metrics: wall time per call, total calls, tool errors, and an
    approximate token cost (``len(json)/4`` over every request and response),
 5. runs :mod:`bench.checker` against the saved output document,
@@ -32,6 +34,7 @@ import argparse
 import json
 import os
 import queue
+import shutil
 import subprocess
 import sys
 import threading
@@ -253,8 +256,11 @@ def run_task(task: dict[str, Any], env: dict[str, str]) -> TaskResult:
     subs = {"out": str(out_path), "template": str(fixture)}
 
     script = task["script"]
-    # Corpus tasks open the fixture implicitly; template tasks open it themselves.
-    implicit_open = bool(script) and script[0]["tool"] != "docx_template_fill"
+    # Corpus tasks edit a fresh copy of the fixture at {out}; the template task
+    # writes {out} from the template, so it needs no pre-seeded file.
+    is_template = bool(script) and script[0]["tool"] == "docx_template_fill"
+    if not is_template:
+        shutil.copyfile(fixture, out_path)
 
     try:
         client = MCPClient(env)
@@ -263,24 +269,12 @@ def run_task(task: dict[str, Any], env: dict[str, str]) -> TaskResult:
         return result
 
     started = time.perf_counter()
-    doc_id: str | None = None
     try:
         client.initialize()
-
-        if implicit_open:
-            doc_id = _timed_call(
-                client, result, "docx_open", {"path": str(fixture)}, doc_id=None
-            ).get("doc_id")
-            if doc_id is None:
-                raise MCPError("implicit docx_open returned no doc_id")
-
         for step in script:
             tool = step["tool"]
             args = _substitute(dict(step.get("args", {})), subs)
-            payload = _timed_call(client, result, tool, args, doc_id=doc_id)
-            # Template fill mints a fresh doc_id the later steps must thread.
-            if "doc_id" in payload and tool == "docx_template_fill":
-                doc_id = payload["doc_id"]
+            _timed_call(client, result, tool, args, out_path=str(out_path))
     except MCPError as exc:
         result.reasons.append(str(exc))
     finally:
@@ -308,12 +302,11 @@ def _timed_call(
     tool: str,
     args: dict[str, Any],
     *,
-    doc_id: str | None,
+    out_path: str,
 ) -> dict[str, Any]:
-    """Inject doc_id (when the tool takes one), time the call, fold in metrics."""
+    """Inject the output file path, time the call, fold in metrics."""
     call_args = dict(args)
-    if doc_id is not None and tool != "docx_template_fill" and "doc_id" not in call_args:
-        call_args["doc_id"] = doc_id
+    call_args.setdefault("path", out_path)
     start = time.perf_counter()
     payload = client.tools_call(tool, call_args)
     elapsed = (time.perf_counter() - start) * 1000.0

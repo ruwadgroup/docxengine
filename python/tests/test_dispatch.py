@@ -140,8 +140,11 @@ class TestDocument:
         assert paragraphs[0].anchor == "P1#515a"
         assert paragraphs[0].text == "Master Services Agreement"
 
-        matches = doc.find("five (5)")
-        assert matches and matches[0]["anchor"] == paragraphs[1].anchor
+        # search() returns match dicts; find() returns a Paragraph view (or None).
+        hits = doc.search("five (5)")
+        assert hits["matches"] and hits["matches"][0]["anchor"] == paragraphs[1].anchor
+        para = doc.find("five (5)")
+        assert para is not None and para.anchor == paragraphs[1].anchor
 
         assert not doc.dirty
         result = doc.replace("five (5) years", "three (3) years")

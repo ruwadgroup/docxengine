@@ -218,6 +218,16 @@ def emit_text_element(text: str, tag: str = "w:t") -> str:
     return f"<{tag}{attr}>{escape_text(text)}</{tag}>"
 
 
+def emit_text_runs(text: str, rpr: str = "") -> str:
+    """One run carrying ``text``, with each ``\\n`` rendered as a ``<w:br/>`` soft break.
+
+    Single-line ``text`` is byte-identical to ``<w:r>{rpr}{emit_text_element(text)}</w:r>``;
+    multiple lines emit ``<w:t>`` segments separated by ``<w:br/>`` within the run.
+    """
+    body = "<w:br/>".join(emit_text_element(segment) for segment in text.split("\n"))
+    return f"<w:r>{rpr}{body}</w:r>"
+
+
 def element_text(data: bytes, span: Span) -> str:
     """Decoded character data of a text-only element such as ``w:t``."""
     if span.empty:

@@ -454,3 +454,16 @@ export function emitTextElement(name: "w:t" | "w:delText", text: string): string
   const attr = needsSpacePreserve(text) ? ' xml:space="preserve"' : "";
   return `<${name}${attr}>${escapeText(text)}</${name}>`;
 }
+
+/**
+ * One run carrying `text`, with each `\n` rendered as a `<w:br/>` soft break.
+ * Single-line text is byte-identical to `<w:r>${rPr}${emitTextElement("w:t", text)}</w:r>`;
+ * multiple lines emit `<w:t>` segments separated by `<w:br/>` within the run.
+ */
+export function emitTextRuns(text: string, rPr = ""): string {
+  const body = text
+    .split("\n")
+    .map((segment) => emitTextElement("w:t", segment))
+    .join("<w:br/>");
+  return `<w:r>${rPr}${body}</w:r>`;
+}

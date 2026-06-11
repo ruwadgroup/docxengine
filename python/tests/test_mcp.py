@@ -68,40 +68,49 @@ class TestHandshake:
         assert "tools" in init["capabilities"]
 
         tools = responses[1]["result"]["tools"]
-        assert len(tools) == 24
+        assert len(tools) == 23  # facade surface: 24 spec tools minus docx_save
         assert all(set(t) == {"name", "description", "inputSchema"} for t in tools)
         by_name = {t["name"]: t for t in tools}
+        assert "docx_save" not in by_name  # saving is automatic on every edit
         assert by_name["docx_open"]["inputSchema"]["properties"]["path"]["type"] == "string"
+        # The path surface never exposes doc_id on any tool.
+        assert not any(
+            "doc_id" in t["inputSchema"].get("properties", {}) for t in tools
+        )
 
         result = responses[2]["result"]
         assert result["isError"] is False
         assert [c["type"] for c in result["content"]] == ["text"]
         opened = json.loads(result["content"][0]["text"])
-        assert opened["doc_id"] == "d1"
+        assert "doc_id" not in opened  # the file IS the handle
+        assert opened["path"] == str(docx_path)
         assert opened["n_paragraphs"] == 3
 
-    def test_resources_list_and_read_over_stdio(self, docx_path: Path) -> None:
+    def test_resources_templates_and_read_over_stdio(self, docx_path: Path) -> None:
+        outline_uri = f"docx://{docx_path}/outline"
+        projection_uri = f"docx://{docx_path}/projection"
         responses, rc = run_mcp(
             [
                 INITIALIZE,
                 INITIALIZED,
-                rpc(2, "tools/call", name="docx_open", arguments={"path": str(docx_path)}),
-                rpc(3, "resources/list"),
-                rpc(4, "resources/read", uri="docx://d1/outline"),
-                rpc(5, "resources/read", uri="docx://d1/projection"),
+                rpc(2, "resources/list"),
+                rpc(3, "resources/templates/list"),
+                rpc(4, "resources/read", uri=outline_uri),
+                rpc(5, "resources/read", uri=projection_uri),
             ]
         )
         assert rc == 0
         by_id = {r["id"]: r for r in responses}
-        resources = by_id[3]["result"]["resources"]
-        assert {r["uri"] for r in resources} == {
-            "docx://d1/outline",
-            "docx://d1/projection",
+        # The filesystem is not enumerated: resources/list is empty; reads are by path.
+        assert by_id[2]["result"]["resources"] == []
+        templates = by_id[3]["result"]["resourceTemplates"]
+        assert {t["uriTemplate"] for t in templates} == {
+            "docx://{path}/outline",
+            "docx://{path}/projection",
         }
-        assert all(r["mimeType"] == "text/markdown" for r in resources)
 
         outline = by_id[4]["result"]["contents"][0]
-        assert outline["uri"] == "docx://d1/outline"
+        assert outline["uri"] == outline_uri
         assert outline["mimeType"] == "text/markdown"
         assert "Master Services Agreement" in outline["text"]
 
@@ -109,52 +118,64 @@ class TestHandshake:
         assert "H1] Master Services Agreement" in projection
         assert "The term is five (5) years" in projection
 
-    def test_resources_read_unknown_doc_is_invalid_params(self) -> None:
+    def test_resources_read_missing_file_is_invalid_params(self, tmp_path: Path) -> None:
+        missing = tmp_path / "nope.docx"
         responses, _ = run_mcp(
-            [INITIALIZE, INITIALIZED, rpc(2, "resources/read", uri="docx://d404/outline")]
+            [INITIALIZE, INITIALIZED, rpc(2, "resources/read", uri=f"docx://{missing}/outline")]
         )
         assert responses[1]["error"]["code"] == -32602
-        assert "doc_not_found" in responses[1]["error"]["message"]
+        assert "open_failed" in responses[1]["error"]["message"]
 
     def test_ping(self) -> None:
         responses, rc = run_mcp([INITIALIZE, INITIALIZED, rpc(2, "ping")])
         assert rc == 0
         assert responses[1] == {"jsonrpc": "2.0", "id": 2, "result": {}}
 
-    def test_doc_state_persists_across_calls(self, docx_path: Path, tmp_path: Path) -> None:
-        out = tmp_path / "out.docx"
+    def test_edits_persist_to_disk_across_calls(self, docx_path: Path) -> None:
+        # Each call opens the file fresh: an edit in one call is on disk for the next,
+        # with no doc_id threaded and no explicit save step.
         responses, rc = run_mcp(
             [
                 INITIALIZE,
                 INITIALIZED,
-                rpc(2, "tools/call", name="docx_open", arguments={"path": str(docx_path)}),
+                rpc(
+                    2,
+                    "tools/call",
+                    name="docx_replace",
+                    arguments={
+                        "path": str(docx_path),
+                        "old": "five (5) years",
+                        "new": "two (2) years",
+                    },
+                ),
                 rpc(
                     3,
                     "tools/call",
-                    name="docx_replace",
-                    arguments={"doc_id": "d1", "old": "five (5) years", "new": "two (2) years"},
-                ),
-                rpc(
-                    4, "tools/call", name="docx_save", arguments={"doc_id": "d1", "path": str(out)}
+                    name="docx_search",
+                    arguments={"path": str(docx_path), "query": "two (2) years"},
                 ),
             ]
         )
         assert rc == 0
-        saved = json.loads(responses[3]["result"]["content"][0]["text"])
-        assert saved == {"ok": True, "validated": True, "bytes": out.stat().st_size}
+        replaced = json.loads(responses[1]["result"]["content"][0]["text"])
+        assert replaced["n_replaced"] == 1
+        assert replaced["saved"] is True
+        assert replaced["bytes"] == docx_path.stat().st_size
+        found = json.loads(responses[2]["result"]["content"][0]["text"])
+        assert found["matches"]  # a fresh open finds the persisted edit
 
 
 class TestErrors:
-    def test_tool_error_is_iserror_result_with_structured_json(self) -> None:
-        read = rpc(2, "tools/call", name="docx_read", arguments={"doc_id": "d404"})
+    def test_tool_error_is_iserror_result_with_structured_json(self, tmp_path: Path) -> None:
+        missing = tmp_path / "nope.docx"
+        read = rpc(2, "tools/call", name="docx_read", arguments={"path": str(missing)})
         responses, _ = run_mcp([INITIALIZE, INITIALIZED, read])
         result = responses[1]["result"]
         assert result["isError"] is True
-        assert json.loads(result["content"][0]["text"]) == {
-            "error": "doc_not_found",
-            "message": "Unknown or expired doc_id: d404.",
-            "suggestions": ["Call docx_open again."],
-        }
+        payload = json.loads(result["content"][0]["text"])
+        assert payload["error"] == "open_failed"
+        assert str(missing) in payload["message"]
+        assert payload["suggestions"]
 
     def test_every_spec_tool_is_implemented(self) -> None:
         # Phase 2 complete: a spec tool with missing args reports invalid_args, not

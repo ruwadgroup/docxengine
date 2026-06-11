@@ -12,8 +12,7 @@
         "props": { "color": "#1F4E79" }
       }
     },
-    { "tool": "docx_validate", "args": {} },
-    { "tool": "docx_save", "args": { "path": "{out}" } }
+    { "tool": "docx_validate", "args": {} }
   ],
   "checks": [
     { "type": "style_color", "style": "Heading2", "hex": "1F4E79" },

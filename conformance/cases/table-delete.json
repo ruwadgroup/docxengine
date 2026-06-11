@@ -1,0 +1,18 @@
+{
+  "doc": "tables",
+  "tool": "docx_table",
+  "args": {
+    "op": "delete",
+    "anchor": "T1"
+  },
+  "expect": {
+    "result": { "note": "Deleted table T1." },
+    "invariants": ["no_word_repair"],
+    "output_contains": {
+      "word/document.xml": {
+        "absent": ["Fee", "$100", "monthly"],
+        "present": ["A1", "C3"]
+      }
+    }
+  }
+}

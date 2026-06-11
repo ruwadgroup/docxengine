@@ -103,7 +103,7 @@ def test_full_session_flow(server: tuple[str, _SessionStore], docx_path: Path) -
     _, _, session_id = post(base_url, INITIALIZE)
     assert session_id is not None
 
-    # tools/call docx_open within the session's own doc store.
+    # tools/call docx_open is path-addressed; no doc_id is minted.
     status, body, _ = post(
         base_url,
         rpc(2, "tools/call", name="docx_open", arguments={"path": str(docx_path)}),
@@ -113,18 +113,18 @@ def test_full_session_flow(server: tuple[str, _SessionStore], docx_path: Path) -
     result = body["result"]  # type: ignore[index]
     assert result["isError"] is False
     opened = json.loads(result["content"][0]["text"])
-    assert opened["doc_id"] == "d1"
+    assert "doc_id" not in opened
+    assert opened["path"] == str(docx_path)
 
-    # resources/list reflects the now-open doc.
+    # resources/list is empty; reads are by path.
     status, body, _ = post(base_url, rpc(3, "resources/list"), session_id=session_id)
     assert status == 200
-    uris = {r["uri"] for r in body["result"]["resources"]}  # type: ignore[index]
-    assert uris == {"docx://d1/outline", "docx://d1/projection"}
+    assert body["result"]["resources"] == []  # type: ignore[index]
 
-    # resources/read returns text/markdown from the projector.
+    # resources/read renders text/markdown for the file path on demand.
     status, body, _ = post(
         base_url,
-        rpc(4, "resources/read", uri="docx://d1/projection"),
+        rpc(4, "resources/read", uri=f"docx://{docx_path}/projection"),
         session_id=session_id,
     )
     assert status == 200

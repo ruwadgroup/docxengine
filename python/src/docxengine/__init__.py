@@ -43,7 +43,7 @@ from ._tools_edit import (
     docx_replace,
     docx_revision,
 )
-from ._tools_lifecycle import docx_repair, docx_save, docx_validate
+from ._tools_lifecycle import docx_repair, docx_save, docx_validate, export_bytes
 from ._tools_read import docx_open, docx_outline, docx_read, docx_search
 from ._validate import Issue, repair_package, validate_package
 
@@ -90,6 +90,7 @@ __all__ = [
     "docx_table",
     "docx_template_fill",
     "docx_validate",
+    "export_bytes",
     "normalized_text",
     "openai_tools",
     "paragraph_anchor",

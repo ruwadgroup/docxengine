@@ -264,15 +264,13 @@ def render_preview(
         page_set = _page_numbers(pages, fallback.estimated_pages)
         plural = "" if fallback.estimated_pages == 1 else "s"
         return {
-            "pages": [
-                {"page": page, "image": f"docx://{doc_id}/preview/page-{page}.png"}
-                for page in page_set
-            ],
+            "pages": [{"page": page} for page in page_set],
             "renderer": "structural",
             "structural": fallback.structural,
             "note": (
-                "No renderer detected; structural preview shows the resolved projection "
-                f"(estimated {fallback.estimated_pages} page{plural})."
+                "No render adapter (LibreOffice/soffice) detected — install LibreOffice or set "
+                "DOCXENGINE_SOFFICE for rendered page images. Showing the structural projection "
+                f"(estimated {fallback.estimated_pages} page{plural}); no image links are returned."
             ),
         }
     renderer = _renderer_label(soffice)

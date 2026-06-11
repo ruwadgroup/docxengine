@@ -8,8 +8,7 @@
       "tool": "docx_revision",
       "args": { "op": "accept", "filter": { "author": "Alice" } }
     },
-    { "tool": "docx_validate", "args": {} },
-    { "tool": "docx_save", "args": { "path": "{out}" } }
+    { "tool": "docx_validate", "args": {} }
   ],
   "checks": [
     { "type": "doc_text_contains", "text": "twelve percent" },

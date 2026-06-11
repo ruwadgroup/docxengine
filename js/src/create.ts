@@ -16,7 +16,7 @@ import { strToU8, zipSync, type Zippable } from "fflate";
 import { ToolError } from "./errors.js";
 import type { Session } from "./session.js";
 import { isValid, validateDoc } from "./validate.js";
-import { emitTextElement, escapeAttr, escapeText } from "./xmlscan.js";
+import { emitTextElement, emitTextRuns, escapeAttr, escapeText } from "./xmlscan.js";
 
 const W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
 const CT_NS = "http://schemas.openxmlformats.org/package/2006/content-types";
@@ -108,11 +108,18 @@ function emitInlineRun(run: InlineRun): string {
   return `<w:r>${rPr}${emitTextElement("w:t", run.text)}</w:r>`;
 }
 
-/** Emit the run sequence for an inline string. */
+/** HTML line breaks accepted in markdown (`<br>`/`<br/>`/`<br />`) → `<w:br/>`. */
+const BR_RE = /<br\s*\/?>/gi;
+/** A break-only run — valid between styled runs (a bare `<w:br/>` may not sit in `w:p`). */
+const LINE_BREAK_RUN = "<w:r><w:br/></w:r>";
+
+/** Emit the run sequence for an inline string; `<br>`/`\n` become `<w:br/>` soft breaks. */
 function emitInline(text: string): string {
-  const runs = parseInline(text);
-  if (runs.length === 0) return "";
-  return runs.map(emitInlineRun).join("");
+  return text
+    .replace(BR_RE, "\n")
+    .split("\n")
+    .map((line) => parseInline(line).map(emitInlineRun).join(""))
+    .join(LINE_BREAK_RUN);
 }
 
 // ---------------------------------------------------------------------------
@@ -227,7 +234,7 @@ function emitTable(state: BuildState, rows: string[][], header: boolean): void {
 function cellParagraph(text: string, header: boolean): string {
   if (text === "") return "<w:p/>";
   if (header) {
-    return `<w:p><w:r><w:rPr><w:b/></w:rPr>${emitTextElement("w:t", text)}</w:r></w:p>`;
+    return `<w:p>${emitTextRuns(text.replace(BR_RE, "\n"), "<w:rPr><w:b/></w:rPr>")}</w:p>`;
   }
   // Cell text supports inline markdown (consistent with §22 inline parsing).
   return `<w:p>${emitInline(text)}</w:p>`;

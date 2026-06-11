@@ -59,16 +59,15 @@ class TestStructuralFallback:
         assert "structural" in result
         assert "[P1#" in str(result["structural"])  # the §2 projection
 
-    def test_preview_page_links(self, monkeypatch, tmp_path) -> None:  # noqa: ANN001
+    def test_preview_fallback_omits_image_links(self, monkeypatch, tmp_path) -> None:  # noqa: ANN001
         _no_soffice(monkeypatch, tmp_path)
         session = Session()
         doc_id = _create(session)
         result = docx_render_preview(session, doc_id=doc_id, pages=[1, 2])
-        images = [p["image"] for p in result["pages"]]
-        assert images == [
-            f"docx://{doc_id}/preview/page-1.png",
-            f"docx://{doc_id}/preview/page-2.png",
-        ]
+        # No renderer ran, so no fake image links — just the page numbers.
+        assert result["pages"] == [{"page": 1}, {"page": 2}]
+        assert all("image" not in page for page in result["pages"])
+        assert "DOCXENGINE_SOFFICE" in str(result["note"])
 
     def test_preview_never_errors_without_renderer(self, monkeypatch, tmp_path) -> None:  # noqa: ANN001
         _no_soffice(monkeypatch, tmp_path)

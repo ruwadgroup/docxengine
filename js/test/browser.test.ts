@@ -10,8 +10,8 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { Session, ToolError, docxOpen, docxRead, docxSearch } from "../src/index.js";
-import { buildDocx } from "./fixtures.js";
+import { Document, Session, ToolError, docxOpen, docxRead, docxSearch } from "../src/index.js";
+import { DEFAULT_PARTS, buildDocx, docWithBody } from "./fixtures.js";
 
 const srcDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "src");
 
@@ -56,5 +56,25 @@ describe("browser-safe module graph", () => {
       expect(e).toBeInstanceOf(ToolError);
       expect((e as ToolError).code).toBe("open_failed");
     }
+  });
+
+  it("Document round-trips bytes-in -> edit -> toBytes-out with no filesystem", async () => {
+    const doc = await Document.open(buildDocx());
+    await doc.replace("five (5) years", "three (3) years");
+    const bytes = doc.toBytes(); // export, not save(path)
+    expect(bytes[0]).toBe(0x50); // PK zip header — no fs touched
+    expect((await Document.open(bytes)).find("three (3) years")).not.toBeNull();
+  });
+
+  it("Document.create and fillTemplate work from memory alone", async () => {
+    const created = await Document.create({ contentMd: "# Title\n\nBody." });
+    expect(created.toBytes()[0]).toBe(0x50);
+
+    const template = buildDocx({
+      ...DEFAULT_PARTS,
+      "word/document.xml": docWithBody("<w:p><w:r><w:t>Hello {{name}}</w:t></w:r></w:p>"),
+    });
+    const filled = await Document.fillTemplate(template, { name: "World" });
+    expect(filled.find("Hello World")).not.toBeNull();
   });
 });

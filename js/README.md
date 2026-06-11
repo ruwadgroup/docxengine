@@ -6,6 +6,8 @@ The TypeScript implementation of [DocxEngine](../README.md): deterministic OOXML
 npm install @docxengine/core
 ```
 
+Storage-agnostic and browser-safe: open from bytes, edit through `call()` or the typed `Document` handle, and persist with `save(path)` (Node) or `toBytes()` (anywhere). The file-first path surface lives in the Python MCP server, not here.
+
 - Usage: [docs/sdks/javascript.md](../docs/sdks/javascript.md)
 - Contract: [spec/](../spec/)
 - Layout: `src/` (TypeScript), `test/` (vitest)

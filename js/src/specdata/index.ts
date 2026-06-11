@@ -879,10 +879,11 @@ export const TOOL_SPECS: ToolSpec[] = [
               },
               image: {
                 type: "string",
-                description: "Resource link like 'docx://d1/preview/page-1.png'.",
+                description:
+                  "Resource link like 'docx://d1/preview/page-1.png'. Present only when a renderer (LibreOffice) produced an image; omitted in the structural fallback.",
               },
             },
-            required: ["page", "image"],
+            required: ["page"],
           },
         },
         renderer: {
@@ -1408,7 +1409,7 @@ export const TOOL_SPECS: ToolSpec[] = [
   {
     name: "docx_table",
     description:
-      "One consolidated tool for all table operations: create, set_cells, insert_row, insert_col, delete_row, delete_col, merge, style. 'create' inserts a table after a paragraph anchor and returns a table anchor like 'T4'; subsequent ops target that anchor. Cell addressing accepts zero-based {r, c} pairs or A1 notation.",
+      "One consolidated tool for all table operations: create, set_cells, insert_row, insert_col, delete_row, delete_col, merge, style, delete. 'create' inserts a table after a paragraph anchor and returns a table anchor like 'T4'; subsequent ops target that anchor. 'style' applies direct table formatting via props (borders, width, alignment, column widths, shading); 'delete' removes the whole table. Cell text supports '\\n' line breaks. Cell addressing accepts zero-based {r, c} pairs or A1 notation.",
     input_schema: {
       type: "object",
       properties: {
@@ -1426,6 +1427,7 @@ export const TOOL_SPECS: ToolSpec[] = [
             "delete_col",
             "merge",
             "style",
+            "delete",
           ],
         },
         anchor: {
@@ -1498,6 +1500,52 @@ export const TOOL_SPECS: ToolSpec[] = [
         style: {
           type: "string",
           description: "Table style name like 'Table Grid' (ops 'create', 'style').",
+        },
+        props: {
+          type: "object",
+          description: "Direct table formatting for op 'style' (overrides the named style).",
+          properties: {
+            borders: {
+              type: "boolean",
+              description: "true = single grid borders; false = borderless.",
+            },
+            border_weight: {
+              type: "integer",
+              description: "Border line weight in eighths of a point (default 4 = 0.5pt).",
+            },
+            border_color: {
+              type: "string",
+              description: "Border hex color like '#1F4E79' (default 'auto').",
+            },
+            width_pct: {
+              type: "number",
+              description: "Table width as a percent of the text column (100 = full width).",
+            },
+            align: {
+              type: "string",
+              enum: ["left", "center", "right"],
+              description: "Horizontal alignment of the table on the page.",
+            },
+            col_widths: {
+              type: "array",
+              items: {
+                type: "integer",
+              },
+              description: "Per-column widths in twips; sets a fixed table layout.",
+            },
+            shading: {
+              type: "object",
+              description: "Cell fill: { header: hex|null } and/or { all: hex|null }. null clears.",
+              properties: {
+                header: {
+                  type: ["string", "null"],
+                },
+                all: {
+                  type: ["string", "null"],
+                },
+              },
+            },
+          },
         },
         track_changes: {
           type: "boolean",

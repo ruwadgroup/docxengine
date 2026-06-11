@@ -25,10 +25,10 @@
             "page": { "type": "integer" },
             "image": {
               "type": "string",
-              "description": "Resource link like 'docx://d1/preview/page-1.png'."
+              "description": "Resource link like 'docx://d1/preview/page-1.png'. Present only when a renderer (LibreOffice) produced an image; omitted in the structural fallback."
             }
           },
-          "required": ["page", "image"]
+          "required": ["page"]
         }
       },
       "renderer": { "type": "string" },

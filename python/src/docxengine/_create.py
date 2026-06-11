@@ -114,11 +114,16 @@ def _emit_inline_run(run: InlineRun) -> str:
     return f"<w:r>{rpr}{_xml.emit_text_element(run.text)}</w:r>"
 
 
+#: HTML line breaks accepted in markdown (``<br>``/``<br/>``/``<br />``) → ``<w:br/>``.
+_BR_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
+#: A break-only run — valid between styled runs (a bare ``<w:br/>`` may not sit in ``w:p``).
+_LINE_BREAK_RUN = "<w:r><w:br/></w:r>"
+
+
 def emit_inline(text: str) -> str:
-    runs = parse_inline(text)
-    if not runs:
-        return ""
-    return "".join(_emit_inline_run(r) for r in runs)
+    lines = _BR_RE.sub("\n", text).split("\n")
+    parts = ["".join(_emit_inline_run(r) for r in parse_inline(line)) for line in lines]
+    return _LINE_BREAK_RUN.join(parts)
 
 
 # ---------------------------------------------------------------------------
@@ -213,7 +218,8 @@ def _cell_paragraph(text: str, header: bool) -> str:
     if text == "":
         return "<w:p/>"
     if header:
-        return f"<w:p><w:r><w:rPr><w:b/></w:rPr>{_xml.emit_text_element(text)}</w:r></w:p>"
+        runs = _xml.emit_text_runs(_BR_RE.sub("\n", text), "<w:rPr><w:b/></w:rPr>")
+        return f"<w:p>{runs}</w:p>"
     return f"<w:p>{emit_inline(text)}</w:p>"
 
 

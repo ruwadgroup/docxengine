@@ -10,14 +10,17 @@ Two transports share one JSON-RPC dispatch (:func:`_handle`):
   threading ``http.server``. ``POST /`` carries a JSON-RPC body; ``initialize``
   allocates an ``Mcp-Session-Id`` (response header) and every later POST must
   echo it (missing/unknown → JSON-RPC error; an *expired* session → HTTP 410).
-  Each session owns its own doc store. ``GET /health`` → ``{"status":"ok"}``.
+  Sessions are protocol-only — document state is the filesystem, not the
+  session. ``GET /health`` → ``{"status":"ok"}``.
 
-``tools/list`` is generated from the packaged spec schemas; ``tools/call``
-dispatches to the same :func:`~docxengine._dispatch.call` the CLI uses. Tool
-failures are MCP tool results with ``isError: true`` carrying the structured
-error JSON, never JSON-RPC errors. ``resources/list`` / ``resources/read``
-expose, per open doc, ``docx://{doc_id}/outline`` and ``/projection`` rendered
-by the projector. doc_ids persist for the session lifetime.
+This server is the **path-based file facade** over the doc_id contract
+(:mod:`~docxengine._mcp_facade`, algorithms.md §26): ``tools/list`` is the spec
+schemas with ``doc_id`` projected to ``path`` (and ``docx_save`` dropped);
+``tools/call`` opens the file, runs the tool, and atomically saves it back when
+the edit dirtied it. Tool failures are MCP tool results with ``isError: true``
+carrying the structured error JSON, never JSON-RPC errors. ``resources/read``
+renders ``docx://{path}/outline`` and ``docx://{path}/projection`` on demand;
+``resources/list`` is empty (the filesystem is not enumerated).
 """
 
 from __future__ import annotations
@@ -30,12 +33,13 @@ import threading
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import IO, Any
+from urllib.parse import unquote
 
 from . import __version__, _projector
-from ._dispatch import call
 from ._errors import ToolError
+from ._mcp_facade import FacadeContext, call_path_tool, facade_tool_schemas
+from ._paths import resolve_path, server_root
 from ._session import Session
-from ._spec import tool_schemas
 
 PROTOCOL_VERSION = "2025-03-26"
 
@@ -45,7 +49,7 @@ _METHOD_NOT_FOUND = -32601
 _INVALID_PARAMS = -32602
 _INTERNAL_ERROR = -32603
 
-#: docx://{doc_id}/{view} resource URIs (one per open doc, per view).
+#: docx://{path}/{view} resource views rendered on demand.
 _RESOURCE_VIEWS = ("outline", "projection")
 
 
@@ -58,14 +62,14 @@ def _result(req_id: object, result: dict[str, Any]) -> dict[str, Any]:
 
 
 def _mcp_tools() -> list[dict[str, Any]]:
-    """The spec tool schemas in the MCP shape (``input_schema`` -> ``inputSchema``)."""
+    """The facade tool schemas in the MCP shape (``input_schema`` -> ``inputSchema``)."""
     return [
         {
             "name": schema["name"],
             "description": schema["description"],
             "inputSchema": schema.get("input_schema", {"type": "object"}),
         }
-        for schema in tool_schemas()
+        for schema in facade_tool_schemas()
     ]
 
 
@@ -83,14 +87,14 @@ def _initialize(req_id: object) -> dict[str, Any]:
     )
 
 
-def _tools_call(req_id: object, params: Any, session: Session) -> dict[str, Any]:
+def _tools_call(req_id: object, params: Any, ctx: FacadeContext) -> dict[str, Any]:
     if not isinstance(params, dict) or not isinstance(params.get("name"), str):
         return _error(req_id, _INVALID_PARAMS, "tools/call requires params with a string 'name'.")
     arguments = params.get("arguments")
     if arguments is not None and not isinstance(arguments, dict):
         return _error(req_id, _INVALID_PARAMS, "tools/call 'arguments' must be an object.")
     try:
-        payload: dict[str, Any] = dict(call(params["name"], arguments, session=session))
+        payload: dict[str, Any] = dict(call_path_tool(params["name"], arguments, ctx))
         is_error = False
     except ToolError as exc:
         payload = exc.to_payload()
@@ -105,61 +109,58 @@ def _tools_call(req_id: object, params: Any, session: Session) -> dict[str, Any]
 
 
 # ---------------------------------------------------------------------------
-# Resources (algorithms.md §25): docx://{doc_id}/{outline,projection}
+# Resources (algorithms.md §26): docx://{path}/{outline,projection} on demand
 # ---------------------------------------------------------------------------
 
-
-def _resources_list(session: Session) -> list[dict[str, Any]]:
-    """One resource per (open doc, view): ``docx://{doc_id}/{view}``."""
-    resources: list[dict[str, Any]] = []
-    for doc_id in session.doc_ids():
-        for view in _RESOURCE_VIEWS:
-            resources.append(
-                {
-                    "uri": f"docx://{doc_id}/{view}",
-                    "name": f"{doc_id} {view}",
-                    "description": f"The §2{'a' if view == 'outline' else ''} {view} of {doc_id}.",
-                    "mimeType": "text/markdown",
-                }
-            )
-    return resources
+_RESOURCE_TEMPLATES = [
+    {
+        "uriTemplate": "docx://{path}/outline",
+        "name": "Document outline",
+        "description": "The heading tree and table list of the .docx file at {path}.",
+        "mimeType": "text/markdown",
+    },
+    {
+        "uriTemplate": "docx://{path}/projection",
+        "name": "Document projection",
+        "description": "The Markdown projection of the .docx file at {path}.",
+        "mimeType": "text/markdown",
+    },
+]
 
 
 def _parse_resource_uri(uri: object) -> tuple[str, str]:
-    """``docx://{doc_id}/{view}`` → ``(doc_id, view)``; ``ToolError`` otherwise."""
-    if not isinstance(uri, str) or not uri.startswith("docx://"):
-        raise ToolError(
-            "invalid_args",
-            f"Unknown resource URI: {uri!r}.",
-            ["Use docx://{doc_id}/outline or docx://{doc_id}/projection."],
-        )
-    rest = uri[len("docx://") :]
-    doc_id, _, view = rest.partition("/")
-    if not doc_id or view not in _RESOURCE_VIEWS:
-        raise ToolError(
-            "invalid_args",
-            f"Unknown resource URI: {uri!r}.",
-            ["Use docx://{doc_id}/outline or docx://{doc_id}/projection."],
-        )
-    return doc_id, view
+    """``docx://{path}/{view}`` → ``(path, view)``; ``ToolError`` otherwise.
+
+    A file path contains ``/``, so the view is the LAST ``/outline``|
+    ``/projection`` suffix and the remainder is the percent-decoded path.
+    """
+    if isinstance(uri, str) and uri.startswith("docx://"):
+        rest = uri[len("docx://") :]
+        for view in _RESOURCE_VIEWS:
+            suffix = f"/{view}"
+            if rest.endswith(suffix):
+                path = rest[: -len(suffix)]
+                if path:
+                    return unquote(path), view
+    raise ToolError(
+        "invalid_args",
+        f"Unknown resource URI: {uri!r}.",
+        ["Use docx://{path}/outline or docx://{path}/projection."],
+    )
 
 
-def _resources_read(uri: object, session: Session) -> dict[str, Any]:
-    """The ``text/markdown`` body of one resource; raises ``ToolError`` on failure."""
-    doc_id, view = _parse_resource_uri(uri)
-    package = session.get(doc_id).package
+def _resources_read(uri: object, ctx: FacadeContext) -> dict[str, Any]:
+    """Render one resource's ``text/markdown`` body on demand; ``ToolError`` on failure."""
+    path, view = _parse_resource_uri(uri)
+    package = Session().open_doc(resolve_path(path, ctx.root)).package
     if view == "outline":
         text = _projector.render_outline_markdown(package)
     else:
         text = _projector.render_projection_markdown(package)
-    return {
-        "contents": [
-            {"uri": f"docx://{doc_id}/{view}", "mimeType": "text/markdown", "text": text}
-        ]
-    }
+    return {"contents": [{"uri": uri, "mimeType": "text/markdown", "text": text}]}
 
 
-def _handle(message: Any, session: Session) -> dict[str, Any] | None:
+def _handle(message: Any, ctx: FacadeContext) -> dict[str, Any] | None:
     """One JSON-RPC message in, one response object out (or None for notifications)."""
     if not isinstance(message, dict) or not isinstance(message.get("method"), str):
         return _error(None, _INVALID_REQUEST, "Message must be a JSON-RPC request object.")
@@ -175,16 +176,18 @@ def _handle(message: Any, session: Session) -> dict[str, Any] | None:
         return _result(req_id, {"tools": _mcp_tools()})
     if method == "tools/call":
         try:
-            return _tools_call(req_id, message.get("params"), session)
+            return _tools_call(req_id, message.get("params"), ctx)
         except Exception as exc:  # never kill the transport on a handler bug
             return _error(req_id, _INTERNAL_ERROR, f"{type(exc).__name__}: {exc}")
     if method == "resources/list":
-        return _result(req_id, {"resources": _resources_list(session)})
+        return _result(req_id, {"resources": []})
+    if method == "resources/templates/list":
+        return _result(req_id, {"resourceTemplates": _RESOURCE_TEMPLATES})
     if method == "resources/read":
         params = message.get("params")
         uri = params.get("uri") if isinstance(params, dict) else None
         try:
-            return _result(req_id, _resources_read(uri, session))
+            return _result(req_id, _resources_read(uri, ctx))
         except ToolError as exc:
             return _error(req_id, _INVALID_PARAMS, f"{exc.code}: {exc.message}")
         except Exception as exc:  # never kill the transport on a handler bug
@@ -197,9 +200,9 @@ def _handle(message: Any, session: Session) -> dict[str, Any] | None:
 # ---------------------------------------------------------------------------
 
 
-def serve(stdin: IO[str], stdout: IO[str], *, session: Session | None = None) -> int:
-    """Run the JSON-RPC loop until EOF; one session per call."""
-    session = session if session is not None else Session()
+def serve(stdin: IO[str], stdout: IO[str], *, ctx: FacadeContext | None = None) -> int:
+    """Run the JSON-RPC loop until EOF; document state is the filesystem."""
+    ctx = ctx if ctx is not None else FacadeContext(server_root())
     for raw in stdin:
         line = raw.strip()
         if not line:
@@ -209,7 +212,7 @@ def serve(stdin: IO[str], stdout: IO[str], *, session: Session | None = None) ->
         except json.JSONDecodeError as exc:
             response: dict[str, Any] | None = _error(None, _PARSE_ERROR, f"Parse error: {exc}.")
         else:
-            response = _handle(message, session)
+            response = _handle(message, ctx)
         if response is not None:
             stdout.write(json.dumps(response, ensure_ascii=False) + "\n")
             stdout.flush()
@@ -224,27 +227,28 @@ _SESSION_HEADER = "Mcp-Session-Id"
 
 
 class _SessionStore:
-    """Thread-safe ``Mcp-Session-Id`` → :class:`Session` registry.
+    """Thread-safe ``Mcp-Session-Id`` registry — protocol lifecycle only.
 
-    ``initialize`` mints a fresh id with its own doc store; ``expire`` drops a
-    session so a later POST with that id reports it as *expired* (HTTP 410), as
-    opposed to *unknown* (a JSON-RPC error).
+    ``initialize`` mints a fresh id; ``expire`` drops it so a later POST with
+    that id reports it as *expired* (HTTP 410), as opposed to *unknown* (a
+    JSON-RPC error). Document state lives in the filesystem, not the session —
+    there is no per-session doc store.
     """
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._sessions: dict[str, Session] = {}
+        self._live: set[str] = set()
         self._expired: set[str] = set()
 
     def create(self) -> str:
         session_id = uuid.uuid4().hex
         with self._lock:
-            self._sessions[session_id] = Session()
+            self._live.add(session_id)
         return session_id
 
-    def get(self, session_id: str) -> Session | None:
+    def is_live(self, session_id: str) -> bool:
         with self._lock:
-            return self._sessions.get(session_id)
+            return session_id in self._live
 
     def is_expired(self, session_id: str) -> bool:
         with self._lock:
@@ -252,8 +256,8 @@ class _SessionStore:
 
     def expire(self, session_id: str) -> bool:
         with self._lock:
-            if session_id in self._sessions:
-                del self._sessions[session_id]
+            if session_id in self._live:
+                self._live.discard(session_id)
                 self._expired.add(session_id)
                 return True
             return False
@@ -268,6 +272,7 @@ class _Handler(BaseHTTPRequestHandler):
 
     protocol_version = "HTTP/1.1"
     store: _SessionStore  # set on the subclass by :func:`_make_handler`
+    ctx: FacadeContext  # set on the subclass by :func:`_make_handler`
 
     def log_message(self, *_args: Any) -> None:  # silence default stderr logging
         return
@@ -309,7 +314,7 @@ class _Handler(BaseHTTPRequestHandler):
 
         if _is_initialize(message):
             session_id = self.store.create()
-            response = _handle(message, self.store.get(session_id))  # type: ignore[arg-type]
+            response = _handle(message, self.ctx)
             self._send_json(200, response or {}, session_id=session_id)
             return
 
@@ -327,8 +332,7 @@ class _Handler(BaseHTTPRequestHandler):
         if self.store.is_expired(header_id):
             self._send_empty(410)
             return
-        session = self.store.get(header_id)
-        if session is None:
+        if not self.store.is_live(header_id):
             self._send_json(
                 200,
                 _error(
@@ -338,15 +342,15 @@ class _Handler(BaseHTTPRequestHandler):
                 ),
             )
             return
-        response = _handle(message, session)
+        response = _handle(message, self.ctx)
         if response is None:  # notification: 202 Accepted, no JSON-RPC body
             self._send_empty(202)
         else:
             self._send_json(200, response, session_id=header_id)
 
 
-def _make_handler(store: _SessionStore) -> type[_Handler]:
-    return type("_BoundHandler", (_Handler,), {"store": store})
+def _make_handler(store: _SessionStore, ctx: FacadeContext) -> type[_Handler]:
+    return type("_BoundHandler", (_Handler,), {"store": store, "ctx": ctx})
 
 
 class _Server(ThreadingHTTPServer):
@@ -368,10 +372,17 @@ class _Server(ThreadingHTTPServer):
         self.server_port = int(port)
 
 
-def serve_http(host: str, port: int, *, store: _SessionStore | None = None) -> _Server:
+def serve_http(
+    host: str,
+    port: int,
+    *,
+    store: _SessionStore | None = None,
+    ctx: FacadeContext | None = None,
+) -> _Server:
     """Build (do not start) a threading HTTP server bound to ``host:port``."""
     store = store if store is not None else _SessionStore()
-    return _Server((host, port), _make_handler(store))
+    ctx = ctx if ctx is not None else FacadeContext(server_root())
+    return _Server((host, port), _make_handler(store, ctx))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -382,8 +393,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--port", type=int, default=8765, help="HTTP port (with --http).")
     parser.add_argument("--host", default="127.0.0.1", help="HTTP bind host (with --http).")
     args = parser.parse_args(argv)
+    ctx = FacadeContext(server_root())
     if args.http:
-        server = serve_http(args.host, args.port)
+        server = serve_http(args.host, args.port, ctx=ctx)
         try:
             server.serve_forever()
         except KeyboardInterrupt:
@@ -391,7 +403,7 @@ def main(argv: list[str] | None = None) -> int:
         finally:
             server.server_close()
         return 0
-    return serve(sys.stdin, sys.stdout)
+    return serve(sys.stdin, sys.stdout, ctx=ctx)
 
 
 if __name__ == "__main__":

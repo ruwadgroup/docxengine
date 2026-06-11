@@ -134,6 +134,7 @@ export {
   docxValidate,
   docxRepair,
   docxSave,
+  exportBytes,
   type DocxValidateArgs,
   type DocxValidateResult,
   type DocxRepairArgs,
@@ -242,4 +243,17 @@ export {
   type AnthropicTool,
 } from "./adapters.js";
 export { TOOL_SPECS, ERROR_SPECS, type ToolSpec, type ErrorSpec } from "./specdata/index.js";
-export { Document, DocumentParagraph, type ReplaceOptions } from "./document.js";
+export {
+  Document,
+  DocumentParagraph,
+  type EditOptions,
+  type ReplaceOptions,
+  type InsertOptions,
+  type TableOptions,
+  type StyleOptions,
+  type FormatOptions,
+  type ListOptions,
+  type SectionOptions,
+  type MediaOptions,
+  type FieldOptions,
+} from "./document.js";

@@ -34,3 +34,17 @@ const result = await call(toolName, toolArgs);
 ```
 
 That's the whole integration. Errors come back structured ([error design](../tools/errors.md)) so the model can self-correct; nothing framework-specific leaks into the engine.
+
+## Persisting the result
+
+The agent surface is storage-agnostic: open from bytes (`docx_open` accepts base64), and when the loop ends, get the bytes back out — your host decides where they go (upload, blob store, HTTP response, disk). This is a **library helper, not a wire tool**: returning megabytes of base64 through the model's context would be token waste, and your code already holds the session.
+
+```python
+data = docxengine.export_bytes(session, doc_id=doc_id)   # validated .docx bytes
+```
+
+```ts
+const data = exportBytes(session, docId); // Uint8Array, browser-safe
+```
+
+`export_bytes`/`exportBytes` runs the same §8 validation gate as a save, then serializes — no filesystem. (The MCP server, being file-first, persists every edit to its path automatically and exposes no bytes tool.)

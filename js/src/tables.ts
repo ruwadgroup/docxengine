@@ -27,6 +27,7 @@ import {
   childElements,
   elementExtent,
   emitTextElement,
+  emitTextRuns,
   escapeAttr,
   findElement,
   getAttr,
@@ -137,7 +138,7 @@ function cellXml(width: number, text: string, header: boolean): string {
 function cellParagraph(text: string, header: boolean): string {
   if (text === "") return "<w:p/>";
   const rPr = header ? "<w:rPr><w:b/></w:rPr>" : "";
-  return `<w:p><w:r>${rPr}${emitTextElement("w:t", text)}</w:r></w:p>`;
+  return `<w:p>${emitTextRuns(text, rPr)}</w:p>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -151,6 +152,16 @@ export interface DocxTableCell {
   text: string;
 }
 
+export interface DocxTableProps {
+  borders?: boolean | undefined;
+  border_weight?: number | undefined;
+  border_color?: string | undefined;
+  width_pct?: number | undefined;
+  align?: string | undefined;
+  col_widths?: number[] | undefined;
+  shading?: { header?: string | null; all?: string | null } | undefined;
+}
+
 export interface DocxTableArgs {
   doc_id: string;
   op:
@@ -161,7 +172,8 @@ export interface DocxTableArgs {
     | "delete_row"
     | "delete_col"
     | "merge"
-    | "style";
+    | "style"
+    | "delete";
   anchor?: string | undefined;
   after?: string | undefined;
   rows?: number | undefined;
@@ -172,6 +184,7 @@ export interface DocxTableArgs {
   at?: number | undefined;
   range?: string | undefined;
   style?: string | undefined;
+  props?: DocxTableProps | undefined;
   track_changes?: boolean | undefined;
   author?: string | undefined;
 }
@@ -229,6 +242,8 @@ export function docxTable(session: Session, args: DocxTableArgs): DocxTableResul
       return tableMerge(doc, args);
     case "style":
       return tableStyle(doc, args);
+    case "delete":
+      return tableDelete(doc, args);
     default:
       throw new ToolError("invalid_args", `docx_table: unknown op ${String(args.op)}.`, []);
   }
@@ -367,7 +382,7 @@ function setCellTextEdit(xml: string, tc: ElementSlice, text: string): SpliceEdi
     );
     if (inner) pPr = xml.slice(inner.start, inner.end);
   }
-  const run = text !== "" ? `<w:r>${emitTextElement("w:t", text)}</w:r>` : "";
+  const run = text !== "" ? emitTextRuns(text) : "";
   const para = `<w:p>${pPr}${run}</w:p>`;
   // Replace from after tcPr (or content start) to content end.
   const contentStart = tcPr ? tcPr.end : tc.contentStart;
@@ -635,8 +650,8 @@ function rebuildCell(xml: string, tc: ElementSlice, leadProps: string, blank: bo
 
 // --- style ------------------------------------------------------------------
 
-function tableStyle(doc: DocHandle, args: DocxTableArgs): DocxTableResult {
-  const entry = requireTableForEdit(doc, args);
+/** Legacy `op:"style"` (no props): stamp the Table Grid named style. */
+function applyNamedStyle(doc: DocHandle, entry: AnchorEntry): void {
   ensureStyle(doc.pkg, "TableGrid", TABLE_GRID_STYLE);
   const xml = doc.documentXml();
   const model = parseTable(xml, entry.block);
@@ -662,7 +677,6 @@ function tableStyle(doc: DocHandle, args: DocxTableArgs): DocxTableResult {
       splice(xml, model.tblPr.start, model.tblPr.end, `<w:tblPr>${tblStyle}</w:tblPr>`),
     );
   } else {
-    // No tblPr: insert one as the first child of w:tbl.
     doc.pkg.setPart(
       doc.documentPartName,
       splice(
@@ -674,7 +688,147 @@ function tableStyle(doc: DocHandle, args: DocxTableArgs): DocxTableResult {
     );
   }
   doc.invalidate();
-  return { note: "Applied 'Table Grid' style." };
+}
+
+// -- comprehensive table formatting (op:"style" with props, §14) --------------
+
+const BORDER_SIDES = ["top", "left", "bottom", "right", "insideH", "insideV"] as const;
+
+function hexColor(c: unknown): string {
+  return typeof c === "string" && c.length > 0 ? (c.startsWith("#") ? c.slice(1) : c) : "auto";
+}
+
+function tblBordersXml(on: unknown, weight: unknown, color: unknown): string {
+  const attrs = on
+    ? `w:val="single" w:sz="${typeof weight === "number" ? Math.trunc(weight) : 4}" w:space="0" w:color="${hexColor(color)}"`
+    : 'w:val="none" w:sz="0" w:space="0" w:color="auto"';
+  return `<w:tblBorders>${BORDER_SIDES.map((s) => `<w:${s} ${attrs}/>`).join("")}</w:tblBorders>`;
+}
+
+function shdXml(fill: unknown): string {
+  return `<w:shd w:val="clear" w:color="auto" w:fill="${hexColor(fill)}"/>`;
+}
+
+function childXml(xml: string, parent: ElementSlice | undefined, name: string): string | null {
+  if (!parent || parent.selfClosed) return null;
+  const el = findElement(xml, name, parent.contentStart, parent.contentEnd);
+  return el ? xml.slice(el.start, el.end) : null;
+}
+
+function buildTblPr(
+  xml: string,
+  tblPr: ElementSlice | undefined,
+  style: string | undefined,
+  props: DocxTableProps,
+): string {
+  const parts: string[] = [];
+  const styleXml =
+    style !== undefined ? '<w:tblStyle w:val="TableGrid"/>' : childXml(xml, tblPr, "w:tblStyle");
+  if (styleXml) parts.push(styleXml);
+  if (typeof props.width_pct === "number") {
+    parts.push(`<w:tblW w:w="${Math.round(props.width_pct * 50)}" w:type="pct"/>`);
+  } else {
+    parts.push('<w:tblW w:w="0" w:type="auto"/>');
+  }
+  if (typeof props.align === "string" && props.align) parts.push(`<w:jc w:val="${props.align}"/>`);
+  if ("borders" in props) {
+    parts.push(tblBordersXml(props.borders, props.border_weight, props.border_color));
+  }
+  if (props.col_widths && props.col_widths.length > 0) parts.push('<w:tblLayout w:type="fixed"/>');
+  const lookXml = childXml(xml, tblPr, "w:tblLook");
+  if (lookXml) parts.push(lookXml);
+  return `<w:tblPr>${parts.join("")}</w:tblPr>`;
+}
+
+function cellShdEdit(xml: string, tc: ElementSlice, fill: unknown): SpliceEdit | null {
+  const tcPr = tc.selfClosed
+    ? undefined
+    : childElements(xml, tc.contentStart, tc.contentEnd).find((k) => k.name === "w:tcPr");
+  const shd =
+    tcPr && !tcPr.selfClosed
+      ? childElements(xml, tcPr.contentStart, tcPr.contentEnd).find((k) => k.name === "w:shd")
+      : undefined;
+  if (fill === null) {
+    return shd ? { start: shd.start, end: shd.end, text: "" } : null;
+  }
+  const text = shdXml(fill);
+  if (shd) return { start: shd.start, end: shd.end, text };
+  if (tcPr && !tcPr.selfClosed) {
+    const tcW = childElements(xml, tcPr.contentStart, tcPr.contentEnd).find(
+      (k) => k.name === "w:tcW",
+    );
+    const pos = tcW ? tcW.end : tcPr.contentStart;
+    return { start: pos, end: pos, text };
+  }
+  return { start: tc.contentStart, end: tc.contentStart, text: `<w:tcPr>${shdXml(fill)}</w:tcPr>` };
+}
+
+function shadingEdits(
+  xml: string,
+  block: ElementSlice,
+  shading: { header?: string | null; all?: string | null },
+): SpliceEdit[] {
+  const rows = childElements(xml, block.contentStart, block.contentEnd).filter(
+    (k) => k.name === "w:tr",
+  );
+  const cellsOf = (tr: ElementSlice): ElementSlice[] =>
+    tr.selfClosed
+      ? []
+      : childElements(xml, tr.contentStart, tr.contentEnd).filter((k) => k.name === "w:tc");
+  const byCell = new Map<number, { tc: ElementSlice; fill: unknown }>();
+  if ("all" in shading) {
+    for (const tr of rows)
+      for (const tc of cellsOf(tr)) byCell.set(tc.start, { tc, fill: shading.all });
+  }
+  if ("header" in shading && rows[0]) {
+    for (const tc of cellsOf(rows[0])) byCell.set(tc.start, { tc, fill: shading.header });
+  }
+  const edits: SpliceEdit[] = [];
+  for (const { tc, fill } of byCell.values()) {
+    const e = cellShdEdit(xml, tc, fill);
+    if (e) edits.push(e);
+  }
+  return edits;
+}
+
+function tableStyle(doc: DocHandle, args: DocxTableArgs): DocxTableResult {
+  const entry = requireTableForEdit(doc, args);
+  if (args.props === undefined) {
+    applyNamedStyle(doc, entry);
+    return { note: "Styled table." };
+  }
+  const xml = doc.documentXml();
+  const block = entry.block;
+  const kids = childElements(xml, block.contentStart, block.contentEnd);
+  const tblPr = kids.find((k) => k.name === "w:tblPr");
+  const edits: SpliceEdit[] = [];
+  const newTblPr = buildTblPr(xml, tblPr, args.style, args.props);
+  edits.push(
+    tblPr
+      ? { start: tblPr.start, end: tblPr.end, text: newTblPr }
+      : { start: block.contentStart, end: block.contentStart, text: newTblPr },
+  );
+  const colWidths = args.props.col_widths;
+  if (Array.isArray(colWidths) && colWidths.length > 0) {
+    const grid = kids.find((k) => k.name === "w:tblGrid");
+    const cols = colWidths.map((w) => `<w:gridCol w:w="${Math.trunc(w)}"/>`).join("");
+    if (grid)
+      edits.push({ start: grid.start, end: grid.end, text: `<w:tblGrid>${cols}</w:tblGrid>` });
+  }
+  if (args.props.shading && typeof args.props.shading === "object") {
+    edits.push(...shadingEdits(xml, block, args.props.shading));
+  }
+  doc.pkg.setPart(doc.documentPartName, spliceAll(xml, edits));
+  doc.invalidate();
+  return { note: "Styled table." };
+}
+
+function tableDelete(doc: DocHandle, args: DocxTableArgs): DocxTableResult {
+  const entry = requireTableForEdit(doc, args);
+  const xml = doc.documentXml();
+  doc.pkg.setPart(doc.documentPartName, splice(xml, entry.block.start, entry.block.end, ""));
+  doc.invalidate();
+  return { note: `Deleted table ${args.anchor}.` };
 }
 
 // ---------------------------------------------------------------------------

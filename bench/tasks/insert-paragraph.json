@@ -11,8 +11,7 @@
         "content": "This Agreement is governed by the laws of the State of Delaware."
       }
     },
-    { "tool": "docx_validate", "args": {} },
-    { "tool": "docx_save", "args": { "path": "{out}" } }
+    { "tool": "docx_validate", "args": {} }
   ],
   "checks": [
     {
