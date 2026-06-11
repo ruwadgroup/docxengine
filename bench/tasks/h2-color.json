@@ -1,0 +1,22 @@
+{
+  "name": "h2-color",
+  "phase": 2,
+  "nl_task": "Make every Heading 2 in the document dark blue (#1F4E79).",
+  "fixture": "minimal",
+  "script": [
+    { "tool": "docx_style", "args": { "op": "list" } },
+    {
+      "tool": "docx_format",
+      "args": {
+        "style_selector": { "style": "Heading 2" },
+        "props": { "color": "#1F4E79" }
+      }
+    },
+    { "tool": "docx_validate", "args": {} },
+    { "tool": "docx_save", "args": { "path": "{out}" } }
+  ],
+  "checks": [
+    { "type": "style_color", "style": "Heading2", "hex": "1F4E79" },
+    { "type": "validate_clean" }
+  ]
+}

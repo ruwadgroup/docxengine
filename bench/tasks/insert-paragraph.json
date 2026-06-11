@@ -1,0 +1,30 @@
+{
+  "name": "insert-paragraph",
+  "nl_task": "After the opening paragraph about the parties, insert a governing-law clause stating the agreement is governed by the laws of the State of Delaware.",
+  "fixture": "minimal",
+  "script": [
+    { "tool": "docx_outline", "args": {} },
+    {
+      "tool": "docx_insert",
+      "args": {
+        "after": "P2#8137",
+        "content": "This Agreement is governed by the laws of the State of Delaware."
+      }
+    },
+    { "tool": "docx_validate", "args": {} },
+    { "tool": "docx_save", "args": { "path": "{out}" } }
+  ],
+  "checks": [
+    {
+      "type": "doc_text_contains",
+      "text": "governed by the laws of the State of Delaware"
+    },
+    {
+      "type": "paragraph_text",
+      "ordinal": 3,
+      "equals": "This Agreement is governed by the laws of the State of Delaware."
+    },
+    { "type": "paragraph_count", "n": 6 },
+    { "type": "validate_clean" }
+  ]
+}

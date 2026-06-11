@@ -1,0 +1,28 @@
+{
+  "name": "text-edit",
+  "nl_task": "In the agreement, change the contract term from five (5) years to three (3) years.",
+  "fixture": "split-runs",
+  "script": [
+    { "tool": "docx_search", "args": { "query": "five (5) years" } },
+    {
+      "tool": "docx_replace",
+      "args": {
+        "anchor": "P2#d337",
+        "old": "five (5) years",
+        "new": "three (3) years"
+      }
+    },
+    { "tool": "docx_validate", "args": {} },
+    { "tool": "docx_save", "args": { "path": "{out}" } }
+  ],
+  "checks": [
+    { "type": "doc_text_contains", "text": "three (3) years" },
+    { "type": "doc_text_absent", "text": "five (5) years" },
+    {
+      "type": "paragraph_text",
+      "ordinal": 2,
+      "equals": "The term is three (3) years from the Effective Date."
+    },
+    { "type": "validate_clean" }
+  ]
+}

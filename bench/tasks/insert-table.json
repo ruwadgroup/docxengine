@@ -1,0 +1,33 @@
+{
+  "name": "insert-table",
+  "phase": 2,
+  "nl_task": "After the definitions paragraph, insert a 3x2 pricing table with a header row of Item / Price and two line items.",
+  "fixture": "minimal",
+  "script": [
+    { "tool": "docx_outline", "args": {} },
+    {
+      "tool": "docx_table",
+      "args": {
+        "op": "create",
+        "after": "P4#a51c",
+        "rows": 3,
+        "cols": 2,
+        "header": true,
+        "data": [
+          ["Item", "Price"],
+          ["Setup fee", "$5,000"],
+          ["Monthly retainer", "$2,500"]
+        ],
+        "style": "Table Grid"
+      }
+    },
+    { "tool": "docx_validate", "args": {} },
+    { "tool": "docx_save", "args": { "path": "{out}" } }
+  ],
+  "checks": [
+    { "type": "doc_text_contains", "text": "Setup fee" },
+    { "type": "doc_text_contains", "text": "Monthly retainer" },
+    { "type": "doc_text_contains", "text": "$2,500" },
+    { "type": "validate_clean" }
+  ]
+}

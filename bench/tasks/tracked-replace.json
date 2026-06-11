@@ -1,0 +1,26 @@
+{
+  "name": "tracked-replace",
+  "nl_task": "Change the payment window from thirty (30) days to forty-five (45) days, recording it as a tracked change by Counsel.",
+  "fixture": "split-runs",
+  "script": [
+    { "tool": "docx_search", "args": { "query": "thirty (30) days" } },
+    {
+      "tool": "docx_replace",
+      "args": {
+        "anchor": "P3#9181",
+        "old": "thirty (30) days",
+        "new": "forty-five (45) days",
+        "track_changes": true,
+        "author": "Counsel"
+      }
+    },
+    { "tool": "docx_validate", "args": {} },
+    { "tool": "docx_save", "args": { "path": "{out}" } }
+  ],
+  "checks": [
+    { "type": "doc_text_contains", "text": "forty-five (45) days" },
+    { "type": "revision_count", "author": "Counsel", "type_": "ins", "n": 1 },
+    { "type": "revision_count", "author": "Counsel", "type_": "del", "n": 1 },
+    { "type": "validate_clean" }
+  ]
+}

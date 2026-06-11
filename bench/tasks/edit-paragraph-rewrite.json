@@ -1,0 +1,35 @@
+{
+  "name": "edit-paragraph-rewrite",
+  "nl_task": "Rewrite the confidentiality-care sentence so each party safeguards Confidential Information using industry-standard measures, tracked as a change by Reviewer.",
+  "fixture": "minimal",
+  "script": [
+    { "tool": "docx_search", "args": { "query": "reasonable care" } },
+    {
+      "tool": "docx_edit_paragraph",
+      "args": {
+        "anchor": "P5#d27e",
+        "text": "Each party shall safeguard Confidential Information using industry-standard measures.",
+        "track_changes": true,
+        "author": "Reviewer"
+      }
+    },
+    { "tool": "docx_validate", "args": {} },
+    { "tool": "docx_save", "args": { "path": "{out}" } }
+  ],
+  "checks": [
+    { "type": "doc_text_contains", "text": "industry-standard measures" },
+    {
+      "type": "revision_count",
+      "author": "Reviewer",
+      "type_": "ins",
+      "n": 2
+    },
+    {
+      "type": "revision_count",
+      "author": "Reviewer",
+      "type_": "del",
+      "n": 2
+    },
+    { "type": "validate_clean" }
+  ]
+}

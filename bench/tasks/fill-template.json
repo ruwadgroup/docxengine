@@ -1,0 +1,30 @@
+{
+  "name": "fill-template",
+  "phase": 2,
+  "nl_task": "Fill the MSA template for client GlobalTech, effective 2026-07-01, with two obligations: deliver the Q3 report and maintain the SLA.",
+  "fixture": "msa-template",
+  "script": [
+    {
+      "tool": "docx_template_fill",
+      "args": {
+        "template": "{template}",
+        "data": {
+          "EffectiveDate": "2026-07-01",
+          "Client": "GlobalTech",
+          "obligations": [{ "text": "Deliver the Q3 report" }, { "text": "Maintain the SLA" }]
+        },
+        "syntax": "mustache"
+      }
+    },
+    { "tool": "docx_validate", "args": {} },
+    { "tool": "docx_save", "args": { "path": "{out}" } }
+  ],
+  "checks": [
+    { "type": "doc_text_contains", "text": "GlobalTech" },
+    { "type": "doc_text_contains", "text": "2026-07-01" },
+    { "type": "doc_text_contains", "text": "Deliver the Q3 report" },
+    { "type": "doc_text_contains", "text": "Maintain the SLA" },
+    { "type": "doc_text_absent", "text": "{{Client}}" },
+    { "type": "validate_clean" }
+  ]
+}

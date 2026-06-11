@@ -1,0 +1,21 @@
+{
+  "name": "accept-author-revisions",
+  "nl_task": "Accept all of Alice's tracked changes in this document, but leave everyone else's untouched.",
+  "fixture": "redlines",
+  "script": [
+    { "tool": "docx_revision", "args": { "op": "list" } },
+    {
+      "tool": "docx_revision",
+      "args": { "op": "accept", "filter": { "author": "Alice" } }
+    },
+    { "tool": "docx_validate", "args": {} },
+    { "tool": "docx_save", "args": { "path": "{out}" } }
+  ],
+  "checks": [
+    { "type": "doc_text_contains", "text": "twelve percent" },
+    { "type": "doc_text_absent", "text": "ten percent" },
+    { "type": "revision_count", "author": "Alice", "n": 0 },
+    { "type": "revision_count", "author": "Bob", "n": 2 },
+    { "type": "validate_clean" }
+  ]
+}

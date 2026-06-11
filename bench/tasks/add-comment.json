@@ -1,0 +1,32 @@
+{
+  "name": "add-comment",
+  "phase": 2,
+  "nl_task": "Add a comment on the Confidential Information definition asking whether the carve-outs should be mutual.",
+  "fixture": "minimal",
+  "script": [
+    { "tool": "docx_search", "args": { "query": "Confidential Information means" } },
+    {
+      "tool": "docx_comment",
+      "args": {
+        "op": "add",
+        "anchor": "P4#a51c",
+        "text": "Should the carve-outs here be made mutual?",
+        "author": "Reviewer"
+      }
+    },
+    { "tool": "docx_validate", "args": {} },
+    { "tool": "docx_save", "args": { "path": "{out}" } }
+  ],
+  "checks": [
+    {
+      "type": "comment_count",
+      "author": "Reviewer",
+      "n": 1
+    },
+    {
+      "type": "comment_text_contains",
+      "text": "should the carve-outs here be made mutual"
+    },
+    { "type": "validate_clean" }
+  ]
+}
