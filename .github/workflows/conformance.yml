@@ -1,0 +1,39 @@
+name: Conformance
+
+# Cross-implementation conformance: the same corpus document + the same tool
+# call must produce byte-equivalent-after-normalization output in Python and TS.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "spec/**"
+      - "python/**"
+      - "js/**"
+      - "conformance/**"
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    name: Python ↔ TS parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Run harness (activates as code lands)
+        run: |
+          if [ -n "$(ls -A conformance/harness 2>/dev/null)" ]; then
+            make conformance
+          else
+            echo "conformance: harness not implemented yet — skipping"
+          fi

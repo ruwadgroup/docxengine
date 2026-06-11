@@ -1,0 +1,42 @@
+name: Feature request
+description: Propose a new capability or an improvement to the tool surface.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: pain
+    attributes:
+      label: The pain point
+      description: What can't you (or your agent) do today? Concrete tasks beat abstractions — "accept only Jane's revisions in section 3" is better than "better revision handling".
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should change? If it's a new tool or parameter, sketch the JSON in/out.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - tool surface / contract (spec)
+        - core engine
+        - projector / reading
+        - tracked changes / comments
+        - mcp server
+        - python package
+        - js package
+        - conformance / benchmarks
+        - docs
+        - other
+    validations:
+      required: true
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: Non-goals acknowledgement
+      options:
+        - label: I've checked this doesn't conflict with the non-goals in ROADMAP.md (no own renderer, no .doc/.odt/.pptx in v1, no realtime collaboration).
+          required: true

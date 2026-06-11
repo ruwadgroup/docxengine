@@ -1,0 +1,11 @@
+# Default owner for everything in the repo.
+* @tamimbinhakim
+
+# The tool contract is a public stability surface — review with care.
+/spec/                @tamimbinhakim
+/docs/tools/          @tamimbinhakim
+/docs/reference/      @tamimbinhakim
+
+# Fidelity and security surfaces require maintainer review.
+/conformance/         @tamimbinhakim
+/SECURITY.md          @tamimbinhakim

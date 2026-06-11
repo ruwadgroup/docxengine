@@ -1,0 +1,21 @@
+name: Documentation issue
+description: Something in the docs is wrong, missing, or confusing.
+labels: ["docs"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Page
+      description: Path or URL of the doc (e.g., docs/core/anchors.md).
+    validations:
+      required: true
+  - type: textarea
+    id: issue
+    attributes:
+      label: What's wrong or missing?
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested fix (optional)

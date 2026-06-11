@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & ideas (Discussions)
+    url: https://github.com/ruwadgroup/docxengine/discussions
+    about: Ask questions, propose designs, or discuss the tool contract.
+  - name: Security report (private)
+    url: https://github.com/ruwadgroup/docxengine/security/advisories/new
+    about: Report vulnerabilities privately — never in a public issue.

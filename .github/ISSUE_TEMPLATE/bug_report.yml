@@ -1,0 +1,68 @@
+name: Bug report
+description: Something is broken — a bad edit, a corrupted document, a wrong projection.
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - core (OPC / XML patcher / run coalescing)
+        - anchors (hash index / re-anchoring)
+        - projector (read / outline / search)
+        - edit (replace / insert / delete / format / tables)
+        - revisions & comments (tracked changes)
+        - validate / repair
+        - render / convert
+        - mcp (server / transports)
+        - python package
+        - js package
+        - adapters
+        - other
+    validations:
+      required: true
+  - type: dropdown
+    id: implementation
+    attributes:
+      label: Implementation
+      options:
+        - Python
+        - JS/TS
+        - Both
+        - MCP server
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what happened instead? Include the exact tool call(s) and response(s) if agent-driven.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Minimal steps or script. Attach a minimal sample .docx that reproduces the issue — never a confidential document; rebuild with synthetic content.
+    validations:
+      required: true
+  - type: input
+    id: producer
+    attributes:
+      label: Document producer
+      description: What created the input document? (Word version, LibreOffice, Google Docs export, python-docx, …) This is usually the whole diagnosis.
+    validations:
+      required: true
+  - type: checkboxes
+    id: word-repair
+    attributes:
+      label: Word behavior
+      options:
+        - label: Word shows a "repair" prompt when opening the output document
+        - label: Tracked changes / comments / footnotes were lost or corrupted
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, package version, Python/Node version, MCP client (if any).

@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use DocxEngine in your research, please cite it as below."
+title: "DocxEngine: An AI-Optimized DOCX Manipulation Engine"
+type: software
+authors:
+  - family-names: "Bin Hakim"
+    given-names: "Tamim"
+    affiliation: "Ruwad Group"
+repository-code: "https://github.com/ruwadgroup/docxengine"
+license: Apache-2.0
+keywords:
+  - docx
+  - ooxml
+  - mcp
+  - ai-agents
+  - document-editing
+  - tracked-changes
+abstract: >-
+  A deterministic OOXML editing core that preserves tracked changes, comments,
+  and footnotes by patching XML directly, exposed to AI agents through an MCP
+  server and framework-agnostic Python/JavaScript packages. Documents are
+  addressed via content-hash-anchored paragraph IDs and projected into a
+  token-efficient Markdown-like view, with always-on OOXML validation and an
+  optional render-based verification loop.

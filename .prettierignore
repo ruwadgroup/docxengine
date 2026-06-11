@@ -1,0 +1,13 @@
+node_modules
+dist
+build
+coverage
+.venv
+__pycache__
+*.egg-info
+pnpm-lock.yaml
+LICENSE
+NOTICE
+assets
+# Conformance corpus documents and expected outputs are fixtures, not source.
+conformance/corpus

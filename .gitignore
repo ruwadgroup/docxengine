@@ -1,0 +1,38 @@
+# Node
+node_modules/
+dist/
+coverage/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+build/
+
+# Render previews & scratch output (agent self-check artifacts)
+*.preview.png
+*.preview.pdf
+tmp/
+out/
+
+# Harness scratch output
+conformance/.out/
+bench/.out/
+bench/results.json
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Env
+.env
+.env.*
+!.env.example

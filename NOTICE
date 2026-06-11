@@ -1,0 +1,9 @@
+DocxEngine
+Copyright 2026 Tamim Bin Hakim and the DocxEngine contributors.
+
+This product includes software developed as part of the DocxEngine project
+(https://github.com/ruwadgroup/docxengine), maintained under the Ruwad Group
+organization.
+
+DocxEngine optionally orchestrates external renderers (LibreOffice) and
+converters under their own licenses. See LICENSING.md for details.
