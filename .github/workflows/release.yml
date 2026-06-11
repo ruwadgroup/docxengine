@@ -2,11 +2,17 @@ name: Release
 
 # Tag-driven release: vX.Y.Z publishes docxengine (PyPI) and @docxengine/core
 # (npm) in lockstep, with provenance. See RELEASING.md.
+#
+# Publishing is deferred, so this workflow is MANUAL-ONLY (workflow_dispatch):
+# pushing a version tag no longer auto-attempts a PyPI/npm publish. Before
+# re-enabling the tag trigger, configure PyPI trusted publishing and the
+# NPM_TOKEN secret, then restore:
+#   on:
+#     push:
+#       tags: ["v*.*.*"]
 
 on:
-  push:
-    tags:
-      - "v*.*.*"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -26,8 +32,17 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
-      - run: make test
-      - run: make conformance
+      - name: Install engines
+        run: |
+          pip install -e "python[dev]"
+          pnpm install --frozen-lockfile
+          pnpm --dir js build
+      - name: Python tests
+        run: pytest python
+      - name: JS tests
+        run: pnpm --dir js test
+      - name: Conformance parity
+        run: python conformance/harness/run.py
 
   publish-python:
     name: Publish to PyPI
