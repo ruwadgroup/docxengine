@@ -1,0 +1,10 @@
+{
+  "anchors": {
+    "P1": "P1#a638"
+  },
+  "features": [
+    "hostile-on-purpose: 256 KiB part deflating past the 200:1 ratio cap"
+  ],
+  "notes": "docx_open must refuse with doc_too_large before decompressing the bomb.",
+  "producer": "DocxEngine make_fixtures.py 1.0 (hand-assembled synthetic OOXML)"
+}

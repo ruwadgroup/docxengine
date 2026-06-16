@@ -723,7 +723,7 @@ export const TOOL_SPECS: ToolSpec[] = [
       },
       required: ["doc_id", "summary", "n_paragraphs", "has_tracked_changes", "has_comments"],
     },
-    errors: ["open_failed", "doc_too_large", "path_denied"],
+    errors: ["open_failed", "doc_too_large", "malicious_content", "path_denied"],
   },
   {
     name: "docx_outline",
@@ -1725,8 +1725,16 @@ export const ERROR_SPECS: ErrorSpec[] = [
   {
     code: "doc_too_large",
     category: "session",
-    message_template: "Document exceeds configured memory caps.",
-    recovery: "Open with streaming options or split the document.",
+    message_template:
+      "Document exceeds configured resource caps (part count, uncompressed size, or compression ratio).",
+    recovery: "Split the document, or raise the DOCXENGINE_MAX_* limits if the file is trusted.",
+  },
+  {
+    code: "malicious_content",
+    category: "session",
+    message_template:
+      "Refusing {part}: the package contains hostile content (a DTD/entity declaration or pathological XML nesting).",
+    recovery: "Conformant Word documents never declare a DTD; treat this file as untrusted.",
   },
   {
     code: "path_denied",

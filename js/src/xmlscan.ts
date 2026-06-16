@@ -8,6 +8,9 @@
  * survive verbatim.
  */
 
+import { ToolError } from "./errors.js";
+import { maxXmlDepth } from "./limits.js";
+
 // ---------------------------------------------------------------------------
 // Whitespace (algorithms.md §1 step 3) — exactly the Unicode White_Space=Yes
 // set. Do NOT use `\s` (it adds U+FEFF, which is non-conformant).
@@ -79,6 +82,33 @@ export function decodeEntities(s: string): string {
 // ---------------------------------------------------------------------------
 // Tag scanning
 // ---------------------------------------------------------------------------
+
+/**
+ * Refuse XML nested deeper than the §27 cap. One linear pass over the start/end
+ * tags (self-closing tags do not nest); run once per part on first read.
+ */
+export function assertXmlDepth(name: string, xml: string): void {
+  const cap = maxXmlDepth();
+  let depth = 0;
+  let i = 0;
+  for (;;) {
+    const t = nextTag(xml, i);
+    if (!t) return;
+    if (t.kind === "start") {
+      depth += 1;
+      if (depth > cap) {
+        throw new ToolError(
+          "doc_too_large",
+          `XML nesting in ${name} exceeds the ${cap}-level depth cap.`,
+          ["Raise DOCXENGINE_MAX_XML_DEPTH if the file is trusted."],
+        );
+      }
+    } else if (t.kind === "end" && depth > 0) {
+      depth -= 1;
+    }
+    i = t.end;
+  }
+}
 
 export interface Tag {
   kind: "start" | "end" | "empty";

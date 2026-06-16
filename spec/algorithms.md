@@ -416,3 +416,23 @@ The wire contract (`spec/tools`, the §11 CLI, the SDK `call()` surface) address
 **Per-call lifecycle.** Each `tools/call`: (1) resolve `path` (and `output_path`/`template` when present) per the path rules below; (2) acquire the per-resolved-path write lock (HTTP: two sessions may target one file); (3) open the file into an ephemeral session → `doc_id`; (4) run the underlying tool; (5) if the document is dirty, validate (§8 gate) and write it back atomically (§9) to the same path — a refused write (`validation_failed`) leaves the file byte-for-byte unchanged; (6) return the result with `doc_id` stripped, the user-supplied `path` echoed, and `{saved, bytes}` added on a successful write-back. `docx_create`/`docx_template_fill` build a new document and force the validate-and-save step; read-only tools never write.
 
 **Path rules.** A relative `path` resolves against the server's working directory, or against `DOCXENGINE_ROOT` when that environment variable is set; `~` expands and symlinks collapse. With `DOCXENGINE_ROOT` set, a path resolving outside the root is refused with `path_denied` (a filesystem sandbox); unset, any path is allowed. A missing/unreadable source file is `open_failed`. `doc_not_found` is structurally unreachable — handles never leave the process.
+
+## 27. Resource & content-safety limits (untrusted input)
+
+Both engines parse untrusted documents driven by untrusted (LLM-generated) tool calls, so the OPC layer bounds a hostile package's cost **before** it can be paid, and refuses hostile XML. The caps are read from the environment on each open so a deployment can tune them; the defaults are generous for real documents and tight against abuse. Both implementations enforce the same checks for parity.
+
+**Decompression bounds (`doc_too_large`).** On open, the engine reads each entry's _declared_ uncompressed size, compressed size, and the entry count from the zip central directory — without decompressing — and refuses the package if any limit is exceeded:
+
+| Limit                              | Env var                            | Default               |
+| ---------------------------------- | ---------------------------------- | --------------------- |
+| Max parts (zip entries)            | `DOCXENGINE_MAX_PARTS`             | `10000`               |
+| Max total uncompressed bytes       | `DOCXENGINE_MAX_TOTAL_BYTES`       | `536870912` (512 MiB) |
+| Max single-part uncompressed bytes | `DOCXENGINE_MAX_PART_BYTES`        | `134217728` (128 MiB) |
+| Max per-part compression ratio     | `DOCXENGINE_MAX_COMPRESSION_RATIO` | `200`                 |
+| Max XML element nesting depth      | `DOCXENGINE_MAX_XML_DEPTH`         | `1000`                |
+
+The ratio check is skipped for parts ≤ 64 KiB (small, highly compressible parts are not a bomb). As defense-in-depth against a central directory that lies about its sizes, each part is decompressed through a bounded reader that refuses once it produces more than `DOCXENGINE_MAX_PART_BYTES`.
+
+**Hostile XML (`malicious_content`).** Every part whose name ends in `.xml` or `.rels` is rejected on first read if it contains a `<!DOCTYPE` or `<!ENTITY` declaration — closing XXE, external-DTD fetches, and billion-laughs entity expansion at the source. (The §3/§4 scanners never expand entities beyond the five XML built-ins and numeric references, so document bodies are independently safe; this is the chokepoint for the parts read with a DOM parser.) XML nested deeper than `DOCXENGINE_MAX_XML_DEPTH` is refused as `doc_too_large`.
+
+Setting any `DOCXENGINE_MAX_*` to a non-positive or non-numeric value falls back to the default.

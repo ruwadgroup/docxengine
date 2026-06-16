@@ -98,9 +98,10 @@ NEVER_MUTATING_OPS: dict[str, set[str]] = {
 OP_MUTATING = {"docx_table", "docx_style", "docx_list", "docx_section",
                "docx_comment", "docx_media", "docx_field"}
 # Volatile/non-load-bearing keys excluded from result-object parity: ids and
-# byte counts vary by construction, and `note` is free-form human prose that the
-# tools word differently per language (it carries no machine-checkable contract).
-MASKED_KEYS = {"doc_id", "bytes", "note"}
+# byte counts vary by construction, and `note`/`message`/`suggestions` are
+# free-form human prose that the tools word differently per language. For an
+# error the machine contract is the `error` code (spec/errors.json), not its text.
+MASKED_KEYS = {"doc_id", "bytes", "note", "message", "suggestions"}
 RESPONSE_TIMEOUT = 60.0
 
 
@@ -406,6 +407,11 @@ def run_case(impl: str, name: str, case: dict[str, Any], env: dict[str, str]) ->
     try:
         opened = proc.call("docx_open", {"path": str(input_docx)})
         if "error" in opened:
+            # A hostile document is refused *at open* (§27): if the case expects
+            # that error code, the open response is the case outcome.
+            if expect.get("error") and opened.get("error") == expect["error"]:
+                run.result = opened
+                return run
             raise HarnessError(f"docx_open failed: {opened}")
         doc_id = opened["doc_id"]
 

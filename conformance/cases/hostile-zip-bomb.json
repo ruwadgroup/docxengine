@@ -1,0 +1,8 @@
+{
+  "doc": "hostile-zip-bomb",
+  "tool": "docx_open",
+  "args": {},
+  "expect": {
+    "error": "doc_too_large"
+  }
+}

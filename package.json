@@ -1,6 +1,6 @@
 {
   "name": "docxengine",
-  "version": "0.1.0",
+  "version": "1.0.0-alpha.1",
   "private": true,
   "description": "An AI-optimized DOCX manipulation engine: one deterministic OOXML core exposed as an MCP server and framework-agnostic Python/JS tools.",
   "homepage": "https://github.com/ruwadgroup/docxengine#readme",

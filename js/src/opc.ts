@@ -5,11 +5,20 @@
  * re-encoded. Untouched parts pass through with byte-identical decompressed
  * content, in the source zip's original entry order; new parts are appended.
  */
-import { unzipSync, zipSync, type Zippable } from "fflate";
+import { unzipSync, zipSync, type UnzipFileInfo, type Zippable } from "fflate";
 
 import { ToolError } from "./errors.js";
+import {
+  RATIO_FLOOR_BYTES,
+  forbidDoctype,
+  isXmlPart,
+  maxCompressionRatio,
+  maxParts,
+  maxPartBytes,
+  maxTotalBytes,
+} from "./limits.js";
 import { nodeFs, nodePath } from "./nodeenv.js";
-import { type Tag, attrs, nextTag } from "./xmlscan.js";
+import { type Tag, assertXmlDepth, attrs, nextTag } from "./xmlscan.js";
 
 const CONTENT_TYPES_PART = "[Content_Types].xml";
 
@@ -34,6 +43,56 @@ export interface ContentTypes {
   overrides: Map<string, string>;
 }
 
+/**
+ * An fflate `filter` that enforces the §27 decompression bounds *before* each
+ * entry is inflated, so a zip bomb is refused without ever expanding it. fflate
+ * exposes `originalSize` (uncompressed) and `size` (compressed) per entry.
+ */
+function boundsFilter(): (file: UnzipFileInfo) => boolean {
+  const capParts = maxParts();
+  const capTotal = maxTotalBytes();
+  const capPart = maxPartBytes();
+  const capRatio = maxCompressionRatio();
+  let count = 0;
+  let total = 0;
+  return (file: UnzipFileInfo): boolean => {
+    count += 1;
+    total += file.originalSize;
+    if (count > capParts) {
+      throw new ToolError("doc_too_large", `Package has over the ${capParts}-part cap.`, [
+        "Split the document, or raise DOCXENGINE_MAX_PARTS if the file is trusted.",
+      ]);
+    }
+    if (file.originalSize > capPart) {
+      throw new ToolError(
+        "doc_too_large",
+        `Part ${file.name} is ${file.originalSize} bytes uncompressed, over the ${capPart}-byte cap.`,
+        ["Raise DOCXENGINE_MAX_PART_BYTES if the file is trusted."],
+      );
+    }
+    if (
+      file.originalSize > RATIO_FLOOR_BYTES &&
+      file.size > 0 &&
+      file.originalSize / file.size > capRatio
+    ) {
+      throw new ToolError(
+        "doc_too_large",
+        `Part ${file.name} compresses ${Math.round(file.originalSize / file.size)}:1, over the ` +
+          `${capRatio}:1 ratio cap (possible zip bomb).`,
+        ["Raise DOCXENGINE_MAX_COMPRESSION_RATIO if the file is trusted."],
+      );
+    }
+    if (total > capTotal) {
+      throw new ToolError(
+        "doc_too_large",
+        `Package is over the ${capTotal}-byte uncompressed cap.`,
+        ["Split the document, or raise DOCXENGINE_MAX_TOTAL_BYTES if the file is trusted."],
+      );
+    }
+    return true;
+  };
+}
+
 function scanElements(xml: string, name: string): Tag[] {
   const out: Tag[] = [];
   let i = 0;
@@ -53,6 +112,8 @@ export class Package {
   /** New parts appended after the originals, in creation order (§9). */
   private readonly appended: string[] = [];
   private readonly dirtySet = new Set<string>();
+  /** Original XML parts already screened for hostile content (§27), to screen once. */
+  private readonly screened = new Set<string>();
 
   private constructor() {}
 
@@ -74,8 +135,10 @@ export class Package {
     }
     let entries: Record<string, Uint8Array>;
     try {
-      entries = unzipSync(data);
+      entries = unzipSync(data, { filter: boundsFilter() });
     } catch (e) {
+      // A limit breach is a deliberate refusal — surface it, not "open_failed".
+      if (e instanceof ToolError) throw e;
       throw new ToolError(
         "open_failed",
         `Cannot open: not a zip archive (${(e as Error).message}).`,
@@ -119,7 +182,15 @@ export class Package {
 
   /** A part decoded as UTF-8 text (for the §3 scanner). */
   partText(name: string): string {
-    return decoder.decode(this.part(name));
+    const text = decoder.decode(this.part(name));
+    // Screen original XML parts once, on first read: reject DTD/entity
+    // declarations and pathological nesting (§27). Parts we generated are trusted.
+    if (!this.dirtySet.has(name) && !this.screened.has(name) && isXmlPart(name)) {
+      forbidDoctype(name, text);
+      assertXmlDepth(name, text);
+      this.screened.add(name);
+    }
+    return text;
   }
 
   /** Replace or create a part; marks it dirty. New parts append at the end. */

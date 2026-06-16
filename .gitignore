@@ -24,6 +24,9 @@ out/
 conformance/.out/
 bench/.out/
 bench/results.json
+bench/perf-results.json
+conformance/fidelity/manifest.json
+examples/template-to-pdf/msa-template.docx
 
 # OS / editors
 .DS_Store

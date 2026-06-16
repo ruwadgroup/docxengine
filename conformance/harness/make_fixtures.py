@@ -759,8 +759,56 @@ def fx_media_doc() -> tuple[list[tuple[str, bytes]], dict]:
     return parts, meta
 
 
+def fx_hostile_doctype() -> tuple[list[tuple[str, bytes]], dict]:
+    # A *benign* DOCTYPE (no exponential entities) so the corpus generator's own
+    # parser is unharmed — but the engine must refuse ANY DTD/entity declaration,
+    # closing XXE / billion-laughs at the source (§27).
+    doc = (
+        XML_DECL
+        + "<!DOCTYPE w:document>"
+        + f'<w:document xmlns:w="{W_NS}" xmlns:r="{R_NS}">'
+        + f"<w:body>{para(run('Hostile'))}{SECT_PR}</w:body></w:document>"
+    ).encode("utf-8")
+    parts = [
+        ("[Content_Types].xml", content_types(STD_OVERRIDES)),
+        ("_rels/.rels", PKG_RELS),
+        ("word/document.xml", doc),
+        ("word/_rels/document.xml.rels", relationships(STD_RELS)),
+        ("word/styles.xml", styles_xml(headings=False)),
+    ]
+    meta = {
+        "features": ["hostile-on-purpose: DOCTYPE declaration in document.xml (XXE surface)"],
+        "notes": (
+            "docx_open must refuse with malicious_content; the §3 scanner never expands"
+            " entities, but DOM-parsed parts are screened at the OPC chokepoint (§27)."
+        ),
+    }
+    return parts, meta
+
+
+def fx_hostile_zip_bomb() -> tuple[list[tuple[str, bytes]], dict]:
+    # A part well above the 64 KiB ratio floor that deflates far past the 200:1
+    # cap. Caught from the central directory before it is ever decompressed (§27).
+    body = para(run("Quarterly Update"))
+    parts = [
+        ("[Content_Types].xml", content_types(STD_OVERRIDES)),
+        ("_rels/.rels", PKG_RELS),
+        ("word/document.xml", document(body)),
+        ("word/_rels/document.xml.rels", relationships(STD_RELS)),
+        ("word/styles.xml", styles_xml(headings=False)),
+        ("word/bomb.bin", b"A" * (256 * 1024)),
+    ]
+    meta = {
+        "features": ["hostile-on-purpose: 256 KiB part deflating past the 200:1 ratio cap"],
+        "notes": "docx_open must refuse with doc_too_large before decompressing the bomb.",
+    }
+    return parts, meta
+
+
 FIXTURES = {
     "minimal": fx_minimal,
+    "hostile-doctype": fx_hostile_doctype,
+    "hostile-zip-bomb": fx_hostile_zip_bomb,
     "split-runs": fx_split_runs,
     "redlines": fx_redlines,
     "comments-footnotes": fx_comments_footnotes,
