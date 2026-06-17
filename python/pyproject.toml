@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "docxengine"
-version = "1.0.0a1"
+version = "1.0.0"
 description = "AI-optimized DOCX manipulation engine: deterministic OOXML editing with tracked changes, hash-anchored addressing, and a token-efficient agent view."
 readme = "README.md"
 requires-python = ">=3.12"

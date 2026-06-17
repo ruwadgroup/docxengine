@@ -1,6 +1,6 @@
 {
   "name": "@docxengine/core",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0",
   "description": "AI-optimized DOCX manipulation engine: deterministic OOXML editing with tracked changes, hash-anchored addressing, and a token-efficient agent view.",
   "license": "Apache-2.0",
   "author": "Tamim Bin Hakim (@tamimbinhakim)",

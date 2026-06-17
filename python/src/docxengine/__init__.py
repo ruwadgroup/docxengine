@@ -47,7 +47,7 @@ from ._tools_lifecycle import docx_repair, docx_save, docx_validate, export_byte
 from ._tools_read import docx_open, docx_outline, docx_read, docx_search
 from ._validate import Issue, repair_package, validate_package
 
-__version__ = "0.0.0"
+__version__ = "1.0.0"
 
 __all__ = [
     "AnchorEntry",
