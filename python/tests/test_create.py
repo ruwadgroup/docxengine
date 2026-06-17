@@ -179,6 +179,19 @@ class TestInline:
         bdr = '<w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="auto"/></w:pBdr>'
         assert bdr in doc
 
+    def test_task_list_glyph_prefixed_listparagraph(self) -> None:
+        session = Session()
+        doc_id = _create(session, "- [ ] todo\n- [x] done\n* [X] also done")
+        doc = _part(session, doc_id, "word/document.xml")
+        assert (
+            '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/></w:pPr>'
+            "<w:r><w:t>☐ todo</w:t></w:r></w:p>" in doc
+        )
+        assert "<w:t>☒ done</w:t>" in doc
+        assert "<w:t>☒ also done</w:t>" in doc
+        # The checkbox replaces the bullet — task items allocate no numbering.
+        assert not session.get(doc_id).package.has_part("word/numbering.xml")
+
 
 # ---------------------------------------------------------------------------
 # Spec / errors

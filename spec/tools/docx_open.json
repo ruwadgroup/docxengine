@@ -26,5 +26,5 @@
     },
     "required": ["doc_id", "summary", "n_paragraphs", "has_tracked_changes", "has_comments"]
   },
-  "errors": ["open_failed", "doc_too_large", "path_denied"]
+  "errors": ["open_failed", "doc_too_large", "malicious_content", "path_denied"]
 }

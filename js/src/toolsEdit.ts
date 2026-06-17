@@ -29,6 +29,7 @@ import {
   tToDelText,
   wordDiff,
 } from "./edits.js";
+import { classifyLine, emitInline, type LineBlock } from "./create.js";
 import { ToolError } from "./errors.js";
 import { parseStyles } from "./projector.js";
 import type { DocHandle, Session } from "./session.js";
@@ -36,7 +37,6 @@ import {
   type SpliceEdit,
   WS_RUN_RE,
   childElements,
-  emitTextElement,
   escapeAttr,
   splice,
   spliceAll,
@@ -269,30 +269,43 @@ export interface DocxInsertResult {
   new_anchors: string[];
 }
 
-interface MdBlock {
-  text: string;
-  style?: string | undefined;
-}
+/** The §22 horizontal-rule paragraph (mirrors `create.ts` `emitRule`). */
+const RULE_PARAGRAPH =
+  "<w:p><w:pPr><w:pBdr>" +
+  '<w:bottom w:val="single" w:sz="6" w:space="1" w:color="auto"/>' +
+  "</w:pBdr></w:pPr></w:p>";
 
-const MD_HEADING_RE = /^(#{1,9}) /;
-
-/** §6a minimal markdown: one paragraph per non-blank line. */
-export function parseMinimalMarkdown(content: string): MdBlock[] {
-  const out: MdBlock[] = [];
+/**
+ * §6a insert markdown: classify each non-blank line into a §22 block (headings,
+ * quotes, rules, task lists, `-`/`*`/`1.` list items, else plain), sharing the
+ * grammar and inline parser with `docx_create`. Multi-line tables are not
+ * recognized here (each `| … |` line becomes a plain paragraph). Blank or
+ * whitespace-only lines emit nothing.
+ */
+export function parseMinimalMarkdown(content: string): LineBlock[] {
+  const out: LineBlock[] = [];
   for (const raw of content.split("\n")) {
     const line = raw.endsWith("\r") ? raw.slice(0, -1) : raw;
     if (line.replace(WS_RUN_RE, "") === "") continue;
-    const h = MD_HEADING_RE.exec(line);
-    if (h) {
-      const level = (h[1] as string).length;
-      out.push({ text: line.slice(level + 1), style: `Heading${level}` });
-    } else if (line.startsWith("- ") || line.startsWith("* ")) {
-      out.push({ text: line.slice(2), style: "ListParagraph" }); // numPr wiring is Phase 2
-    } else {
-      out.push({ text: line });
-    }
+    out.push(classifyLine(line));
   }
   return out;
+}
+
+/** The pStyle a §6a insert block carries (`null` = no pStyle; `numPr` is Phase 2). */
+function blockStyle(block: LineBlock): string | null {
+  switch (block.kind) {
+    case "heading":
+      return `Heading${block.level}`;
+    case "quote":
+      return "Quote";
+    case "task":
+    case "ul":
+    case "ol":
+      return "ListParagraph";
+    default:
+      return null;
+  }
 }
 
 /** §6a: the styleId verbatim if defined, else with whitespace removed, else error. */
@@ -315,9 +328,9 @@ export function docxInsert(session: Session, args: DocxInsertArgs): DocxInsertRe
   }
   const entries = paragraphEntries(doc);
   const entry = requireParagraph(entries, (args.after ?? args.before) as string); // hash FIRST
-  const paragraphs = parseMinimalMarkdown(args.content);
+  const blocks = parseMinimalMarkdown(args.content);
   const styleId = args.style != null ? resolveStyleId(doc, args.style) : null;
-  if (paragraphs.length === 0) return { new_anchors: [] };
+  if (blocks.length === 0) return { new_anchors: [] };
 
   const xml = doc.documentXml();
   const tracked = args.track_changes === true;
@@ -325,22 +338,28 @@ export function docxInsert(session: Session, args: DocxInsertArgs): DocxInsertRe
   const date = revisionDate();
   let revId = tracked ? maxRevisionId(xml) + 1 : 0;
   const pieces: string[] = [];
-  for (const b of paragraphs) {
-    const effective = styleId ?? b.style;
+  for (const b of blocks) {
+    // A horizontal rule has no runs; a style override turns it into a styled empty paragraph.
+    if (b.kind === "rule" && styleId == null) {
+      pieces.push(RULE_PARAGRAPH);
+      continue;
+    }
+    const effective = styleId ?? blockStyle(b);
     const pPr =
       effective != null ? `<w:pPr><w:pStyle w:val="${escapeAttr(effective)}"/></w:pPr>` : "";
-    let run = b.text !== "" ? `<w:r>${emitTextElement("w:t", b.text)}</w:r>` : "";
-    if (tracked && run !== "") {
-      run = revisionOpen("ins", revId++, author, date) + run + "</w:ins>";
+    const text = b.kind === "rule" ? "" : b.text;
+    let runs = text !== "" ? emitInline(text) : "";
+    if (tracked && runs !== "") {
+      runs = revisionOpen("ins", revId++, author, date) + runs + "</w:ins>";
     }
-    pieces.push(`<w:p>${pPr}${run}</w:p>`);
+    pieces.push(`<w:p>${pPr}${runs}</w:p>`);
   }
   const position = args.after != null ? entry.block.end : entry.block.start;
   commit(doc, splice(xml, position, position, pieces.join("")));
   const base = args.after != null ? entry.ordinal + 1 : entry.ordinal;
   const fresh = paragraphEntries(doc);
   return {
-    new_anchors: paragraphs.map((_, i) => entryAt(fresh, base + i, `P${base + i}`).anchor),
+    new_anchors: blocks.map((_, i) => entryAt(fresh, base + i, `P${base + i}`).anchor),
   };
 }
 

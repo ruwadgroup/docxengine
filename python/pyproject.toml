@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "docxengine"
-version = "0.1.0"
+version = "1.0.0a1"
 description = "AI-optimized DOCX manipulation engine: deterministic OOXML editing with tracked changes, hash-anchored addressing, and a token-efficient agent view."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -12,7 +12,7 @@ license = "Apache-2.0"
 authors = [{ name = "Tamim Bin Hakim" }]
 keywords = ["docx", "ooxml", "mcp", "ai-agents", "tracked-changes"]
 classifiers = [
-  "Development Status :: 2 - Pre-Alpha",
+  "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
   "Programming Language :: Python :: 3.12",
   "Topic :: Office/Business :: Office Suites",

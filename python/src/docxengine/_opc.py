@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from xml.etree import ElementTree as ET
 
 from ._errors import ToolError
+from ._limits import check_archive, forbid_doctype, is_xml_part, max_part_bytes
 
 _RELS_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
 _CT_NS = "http://schemas.openxmlformats.org/package/2006/content-types"
@@ -80,11 +81,25 @@ def rels_part_for(part_name: str | None) -> str:
 
 
 def resolve_rel_target(source_part: str | None, target: str) -> str:
-    """Resolve an Internal relationship target to a package part name."""
+    """Resolve an Internal relationship target to a package part name.
+
+    ``..`` segments are collapsed and *clamped at the package root*: a target can
+    never resolve to a name with leading ``..`` or an absolute path, so a hostile
+    relationship cannot escape the package (matches the TypeScript engine).
+    """
     if target.startswith("/"):
         return _normalize_part_name(target)
     base_dir = posixpath.dirname(_normalize_part_name(source_part or ""))
-    return posixpath.normpath(posixpath.join(base_dir, target))
+    segments: list[str] = []
+    for segment in posixpath.join(base_dir, target).split("/"):
+        if segment in ("", "."):
+            continue
+        if segment == "..":
+            if segments:
+                segments.pop()  # else: drop — cannot climb above the root
+        else:
+            segments.append(segment)
+    return "/".join(segments)
 
 
 class Package:
@@ -99,7 +114,9 @@ class Package:
                 f"Cannot open {source_path or '<bytes>'}: not a zip archive ({exc}).",
                 ["Check the path; the file is not a .docx package."],
             ) from exc
-        self._original_order: list[str] = [info.filename for info in self._zip.infolist()]
+        infolist = self._zip.infolist()
+        check_archive([(i.filename, i.file_size, i.compress_size) for i in infolist])
+        self._original_order: list[str] = [info.filename for info in infolist]
         self._original: frozenset[str] = frozenset(self._original_order)
         self._cache: dict[str, bytes] = {}  # lazily decompressed original parts
         self._dirty: dict[str, bytes] = {}  # modified + new parts, insertion-ordered
@@ -156,8 +173,30 @@ class Package:
         if name not in self._cache:
             if name not in self._original:
                 raise KeyError(name)
-            self._cache[name] = self._zip.read(name)
+            self._cache[name] = self._read_original(name)
         return self._cache[name]
+
+    def _read_original(self, name: str) -> bytes:
+        """Decompress an original part through a bounded reader and screen its XML.
+
+        The §27 metadata pre-check already refused declared bombs at open; this
+        bounds memory against a central directory that lies about its sizes, and
+        rejects a DTD/entity declaration in any XML part on first read.
+        """
+        if name.endswith("/"):
+            return b""
+        cap = max_part_bytes()
+        with self._zip.open(name) as fh:
+            data = fh.read(cap + 1)
+        if len(data) > cap:
+            raise ToolError(
+                "doc_too_large",
+                f"Part {name} decompresses past the {cap}-byte cap.",
+                ["Raise DOCXENGINE_MAX_PART_BYTES if the file is trusted."],
+            )
+        if is_xml_part(name):
+            forbid_doctype(name, data)
+        return data
 
     def set_part(self, name: str, data: bytes) -> None:
         """Replace (or create) a part's bytes; the part is marked dirty."""

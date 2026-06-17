@@ -168,13 +168,12 @@ def test_convert_md_returns_content(ctx: FacadeContext, docx_file: Path) -> None
 
 def test_render_preview_uri_uses_path(ctx: FacadeContext, docx_file: Path) -> None:
     result = call_path_tool("docx_render_preview", {"path": str(docx_file)}, ctx)
-    pages = result["pages"]
-    assert pages  # page numbers are present even in the structural fallback
-    # Any image link (only when a renderer ran) is rewritten to use the path, not a doc_id.
-    assert all(
-        "image" not in page or page["image"].startswith(f"docx://{docx_file}/preview/")
-        for page in pages
-    )
+    # Structural fallback (no renderer here): a compact page_count, no per-page array.
+    assert "pages" not in result
+    assert result["page_count"] >= 1
+    # When a renderer does run, any image link is rewritten to use the path, not a doc_id.
+    for page in result.get("pages", []):
+        assert "image" not in page or page["image"].startswith(f"docx://{docx_file}/preview/")
 
 
 # ---------------------------------------------------------------------------

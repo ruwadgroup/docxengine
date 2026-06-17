@@ -260,7 +260,10 @@ export interface PreviewPage {
 }
 
 export interface DocxRenderPreviewResult {
-  pages: PreviewPage[];
+  /** Per-page image links; present only when a renderer ran. */
+  pages?: PreviewPage[];
+  /** Estimated page count for the structural fallback (no renderer). */
+  page_count?: number;
   renderer: string;
   note?: string;
   structural?: string;
@@ -278,9 +281,8 @@ export function renderPreview(
   const soffice = detectSoffice();
   if (soffice === null) {
     const fallback = structuralPreview(doc);
-    const pages = pageNumbers(args.pages, fallback.estimatedPages);
     return {
-      pages: pages.map((page) => ({ page })),
+      page_count: fallback.estimatedPages,
       renderer: "structural",
       structural: fallback.structural,
       note:

@@ -565,6 +565,46 @@ describe("docx_insert", () => {
     expect(projected).toContain(`[P3#${anchorHash("Deep")} H4] Deep`);
   });
 
+  it("parses blockquotes, rules, task lists, and inline markdown (§6a = §22 grammar)", () => {
+    const { session, docId } = openParts();
+    const content = "> quoted\n---\n- [ ] todo\n- [x] done\nSee **bold** and `code`.";
+    const res = docxInsert(session, { doc_id: docId, after: "P1#515a", content });
+    expect(res.new_anchors).toHaveLength(5);
+    const xml = documentXml(session, docId);
+    expect(xml).toContain(
+      '<w:p><w:pPr><w:pStyle w:val="Quote"/></w:pPr><w:r><w:t>quoted</w:t></w:r></w:p>',
+    );
+    // Horizontal rule: a bordered empty paragraph, no runs.
+    expect(xml).toContain(
+      '<w:p><w:pPr><w:pBdr><w:bottom w:val="single" w:sz="6" w:space="1" w:color="auto"/>' +
+        "</w:pBdr></w:pPr></w:p>",
+    );
+    expect(xml).toContain(
+      '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/></w:pPr><w:r><w:t>☐ todo</w:t></w:r></w:p>',
+    );
+    expect(xml).toContain("<w:t>☒ done</w:t>");
+    // Inline markers split into runs instead of landing as literal text.
+    expect(xml).toContain("<w:r><w:rPr><w:b/></w:rPr><w:t>bold</w:t></w:r>");
+    expect(xml).toContain('<w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/></w:rPr>');
+  });
+
+  it("wraps a multi-run inline paragraph in a single w:ins when tracking", () => {
+    process.env["DOCXENGINE_AUTHOR"] = "Robo";
+    const { session, docId } = openParts();
+    docxInsert(session, {
+      doc_id: docId,
+      after: "P1#515a",
+      content: "See **bold** here",
+      track_changes: true,
+    });
+    expect(documentXml(session, docId)).toContain(
+      '<w:ins w:id="1" w:author="Robo" w:date="2026-06-10T00:00:00Z">' +
+        '<w:r><w:t xml:space="preserve">See </w:t></w:r>' +
+        "<w:r><w:rPr><w:b/></w:rPr><w:t>bold</w:t></w:r>" +
+        '<w:r><w:t xml:space="preserve"> here</w:t></w:r></w:ins>',
+    );
+  });
+
   it("resolves a style override against styles.xml ('Heading 2' → Heading2)", () => {
     const { session, docId } = openParts(partsWith({ "word/styles.xml": STYLED_XML }));
     docxInsert(session, {

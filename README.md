@@ -173,7 +173,7 @@ docxengine/
 
 ## Roadmap & status
 
-**Phases 0–2 complete; current phase: 3 — Hardening.** All 24 tools are implemented and conformance-tested in both languages: 455 Python tests, 342 TS tests, 31/31 cross-implementation parity cases, and a 10-task agent benchmark passing end-to-end over the file-first MCP server with zero tool errors and zero Word-repair events. Remaining: benchmark comparisons against the python-docx and raw-XML baselines, fuzzing, large-document streaming, and cross-renderer fidelity. Full plan with decision thresholds: [ROADMAP.md](ROADMAP.md).
+**Public alpha (v1.0.0-alpha.1). Phases 0–2 complete; Phase 3 hardening substantially landed.** All 24 tools are implemented and conformance-tested in both languages: 473 Python tests, 355 TS tests, 36/36 cross-implementation parity cases, and a 10-task agent benchmark passing end-to-end over the file-first MCP server with zero tool errors and zero Word-repair events. This cut adds hostile-input hardening in both engines (zip-bomb caps, `<!DOCTYPE`/`<!ENTITY` rejection, XML depth caps, path-traversal clamping — all tunable via `DOCXENGINE_MAX_*`; see [SECURITY.md](SECURITY.md)), adversarial test suites, a large-document perf benchmark (`make perf`), a cross-renderer fidelity harness (`make fidelity`), and the [Rust/WASM core evaluation](docs/research/rust-wasm-core.md). Remaining: baseline benchmark comparisons, large-document streaming, and a batch-splice fix for `replace {all: true}`. Full plan with decision thresholds: [ROADMAP.md](ROADMAP.md).
 
 ## Contributing
 

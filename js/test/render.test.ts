@@ -105,9 +105,9 @@ describe("structural fallback (no renderer)", () => {
     expect(res.renderer).toBe("structural");
     expect(res.structural).toContain("[P1#");
     expect(res.structural).toContain("Title");
-    expect(res.pages.length).toBeGreaterThanOrEqual(1);
-    // No renderer ran, so no fake image links — just the page numbers.
-    expect(res.pages.every((p) => p.image === undefined)).toBe(true);
+    // No renderer ran, so no per-page array — just a compact page_count estimate.
+    expect(res.pages).toBeUndefined();
+    expect(res.page_count).toBeGreaterThanOrEqual(1);
     expect(res.note).toContain("DOCXENGINE_SOFFICE");
   });
 
@@ -156,7 +156,7 @@ describe("LibreOffice path (stub soffice)", () => {
     const { session, docId } = newDoc();
     const res = docxRenderPreview(session, { doc_id: docId, pages: [1, 2] });
     expect(res.renderer).toBe("libreoffice 24.8.1.2");
-    expect(res.pages.map((p) => p.page)).toEqual([1, 2]);
-    expect(res.pages[0]?.image).toBe(`docx://${docId}/preview/page-1.png`);
+    expect(res.pages?.map((p) => p.page)).toEqual([1, 2]);
+    expect(res.pages?.[0]?.image).toBe(`docx://${docId}/preview/page-1.png`);
   });
 });

@@ -161,8 +161,61 @@ class TestHandshake:
         assert replaced["n_replaced"] == 1
         assert replaced["saved"] is True
         assert replaced["bytes"] == docx_path.stat().st_size
-        found = json.loads(responses[2]["result"]["content"][0]["text"])
-        assert found["matches"]  # a fresh open finds the persisted edit
+        # docx_search is text-first → markdown, not JSON (§26).
+        found = responses[2]["result"]["content"][0]["text"]
+        assert "two (2) years" in found  # a fresh open finds the persisted edit
+        assert found.endswith("-->")  # the trailing metadata comment
+
+
+class TestMarkdownProjection:
+    """Text-first tools emit markdown over tools/call (§26); structured tools stay JSON."""
+
+    def test_render_preview_and_convert_are_markdown(self, docx_path: Path) -> None:
+        responses, rc = run_mcp(
+            [
+                INITIALIZE,
+                INITIALIZED,
+                rpc(
+                    2,
+                    "tools/call",
+                    name="docx_render_preview",
+                    arguments={"path": str(docx_path)},
+                ),
+                rpc(
+                    3,
+                    "tools/call",
+                    name="docx_convert",
+                    arguments={"path": str(docx_path), "to": "md"},
+                ),
+                rpc(4, "tools/call", name="docx_outline", arguments={"path": str(docx_path)}),
+            ]
+        )
+        assert rc == 0
+        by_id = {r["id"]: r["result"] for r in responses if "result" in r and "id" in r}
+
+        preview = by_id[2]["content"][0]["text"]
+        assert by_id[2]["isError"] is False
+        assert preview.startswith("[P1#")  # the structural projection, not JSON
+        assert "structural projection, no render adapter" in preview  # trailer
+        assert preview.rstrip().endswith("-->")
+
+        converted = by_id[3]["content"][0]["text"]
+        assert "five (5) years" in converted  # body text, raw
+        assert not converted.lstrip().startswith("{")  # raw markdown, not a JSON envelope
+
+        outline = by_id[4]["content"][0]["text"]
+        assert "# Master Services Agreement [P1#" in outline
+
+    def test_structured_tool_stays_json(self, docx_path: Path) -> None:
+        responses, _ = run_mcp(
+            [
+                INITIALIZE,
+                INITIALIZED,
+                rpc(2, "tools/call", name="docx_validate", arguments={"path": str(docx_path)}),
+            ]
+        )
+        payload = json.loads(responses[1]["result"]["content"][0]["text"])  # parses as JSON
+        assert "valid" in payload
 
 
 class TestErrors:

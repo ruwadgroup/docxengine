@@ -1,0 +1,8 @@
+{
+  "doc": "hostile-doctype",
+  "tool": "docx_open",
+  "args": {},
+  "expect": {
+    "error": "malicious_content"
+  }
+}

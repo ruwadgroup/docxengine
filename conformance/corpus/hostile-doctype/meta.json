@@ -1,0 +1,10 @@
+{
+  "anchors": {
+    "P1": "P1#b347"
+  },
+  "features": [
+    "hostile-on-purpose: DOCTYPE declaration in document.xml (XXE surface)"
+  ],
+  "notes": "docx_open must refuse with malicious_content; the §3 scanner never expands entities, but DOM-parsed parts are screened at the OPC chokepoint (§27).",
+  "producer": "DocxEngine make_fixtures.py 1.0 (hand-assembled synthetic OOXML)"
+}

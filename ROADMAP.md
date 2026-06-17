@@ -4,12 +4,15 @@ A sequenced build plan with measurable gates. Phases are scoped so each ends wit
 
 ## Status
 
-**Phases 0–2 complete. Current phase: 3 — Hardening.**
+**Phases 0–2 complete. Phase 3 (Hardening) substantially landed for the v1.0.0-alpha.1 cut.**
 
 - Phase 0 gate passed: every corpus document round-trips byte-stable with zero diff in both implementations.
 - Phase 1 surface implemented and green in both languages, including the MCP stdio server.
-- Phase 2 surface implemented and green: tables, styles, lists, sections, comments, media, fields, templates, create, convert (md/html in-engine), render adapter (LibreOffice + structural fallback), MCP Streamable HTTP + resources. Totals: 427 Python tests, 328 TS tests, 31/31 cross-implementation conformance cases, 10/10 agent-benchmark tasks over MCP (zero tool errors, zero Word-repair events).
-- Open before 0.1: the benchmark comparison runs against the python-docx-wrapper and raw-XML baselines (harness in `bench/`, baselines documented as protocol), plus Phase 3 hardening below.
+- Phase 2 surface implemented and green: tables, styles, lists, sections, comments, media, fields, templates, create, convert (md/html in-engine), render adapter (LibreOffice + structural fallback), MCP Streamable HTTP + resources.
+- Phase 3 (this cut): hostile-input hardening in both engines — zip-bomb caps (count/size/ratio), `<!DOCTYPE`/`<!ENTITY` rejection (XXE / billion-laughs), XML depth caps, path-traversal clamping — all tunable via `DOCXENGINE_MAX_*` and covered by adversarial suites + two cross-impl conformance cases (algorithms.md §27). Added the large-document perf benchmark (`bench/perf.py`), the cross-renderer fidelity harness + protocol (`conformance/fidelity/`, `docs/conformance/fidelity.md`), and the Rust/WASM core evaluation (`docs/research/rust-wasm-core.md`).
+- Totals: 473 Python tests, 355 TS tests, 36/36 cross-implementation conformance cases, 10/10 agent-benchmark tasks over MCP (zero tool errors, zero Word-repair events).
+- **Known perf hotspot (tracked):** `docx_replace {all: true}` splices the whole document once per match → superlinear when a match exists in every paragraph (`bench/perf.py --heavy` measures it). Single/anchored replace is linear. Fix: batch all matches into one splice pass — see Phase 3 performance tuning.
+- Still open: the benchmark comparison against the python-docx-wrapper and raw-XML baselines (documented as protocol in `bench/`), large-document streaming, and the batch-splice perf fix above.
 
 ## Phase 0 — Foundations (weeks 1–3)
 

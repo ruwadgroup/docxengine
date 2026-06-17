@@ -1,6 +1,6 @@
 # DocxEngine task runner (boilerplate — targets activate as code lands).
 
-.PHONY: help setup format format-check lint test test-py test-js conformance bench clean
+.PHONY: help setup format format-check lint test test-py test-js conformance bench perf fidelity clean
 
 help: ## Show this help.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -30,6 +30,12 @@ conformance: ## Run the cross-implementation conformance harness.
 
 bench: ## Run the agent task benchmark.
 	.venv/bin/python bench/run.py
+
+perf: ## Run the large-document performance benchmark.
+	.venv/bin/python bench/perf.py
+
+fidelity: ## Run the cross-renderer fidelity harness (structural + LibreOffice when present).
+	.venv/bin/python conformance/fidelity/run.py
 
 clean: ## Remove build artifacts.
 	rm -rf dist coverage python/dist js/dist

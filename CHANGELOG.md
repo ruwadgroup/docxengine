@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.0-alpha.1] - 2026-06-16
+
+First public **alpha**. Phase 3 hardening: the engine now defends itself against hostile input, and the security claims in `SECURITY.md` are backed by code in both engines.
+
+### Security
+
+- **Decompression-bomb defenses** (`doc_too_large`): both engines now bound an untrusted package's cost _before_ paying it — caps on part count, total and per-part uncompressed bytes, and per-part compression ratio (ratio floor 64 KiB). Python checks the zip central directory and decompresses each part through a bounded reader; TypeScript enforces the same caps in an `fflate` pre-decompression `filter`. All caps are tunable via `DOCXENGINE_MAX_PARTS` / `_MAX_TOTAL_BYTES` / `_MAX_PART_BYTES` / `_MAX_COMPRESSION_RATIO` / `_MAX_XML_DEPTH` (spec/algorithms.md §27).
+- **Hostile-XML rejection** (`malicious_content`, new error code): XML parts carrying a `<!DOCTYPE`/`<!ENTITY` declaration are refused on first read, closing XXE, external-DTD fetches, and billion-laughs entity expansion — in Python this guards the `ElementTree` parse sites that would otherwise expand internal entities.
+- **XML nesting-depth cap**: pathologically nested XML is refused (`doc_too_large`) past `DOCXENGINE_MAX_XML_DEPTH` (default 1000).
+- **Path-traversal hardening**: Python `resolve_rel_target` now clamps `..` at the package root (a hostile relationship target can no longer resolve to a name with leading `..`), matching the TypeScript engine.
+
+### Added
+
+- **Adversarial test suites** in both engines (`python/tests/test_adversarial.py`, `js/test/adversarial.test.ts`) plus two cross-implementation conformance cases (`hostile-doctype`, `hostile-zip-bomb`) — 36 conformance cases now pass on py, js, and parity.
+- **Large-document performance benchmark** (`bench/perf.py`, `make perf`): wall time and peak Python-heap memory for open/outline/search/read/replace/validate/serialize across document sizes.
+- **Cross-renderer fidelity harness** (`conformance/fidelity/run.py`, `make fidelity`) and protocol (`docs/conformance/fidelity.md`): automated structural-fidelity checks everywhere, LibreOffice visual rendering when available, and the documented Word/LibreOffice/Google-Docs manual comparison protocol.
+- **Rust/WASM core-unification evaluation** (`docs/research/rust-wasm-core.md`): the ROADMAP Phase 3 v2 decision doc — recommendation is to defer and keep the dual-engine + conformance approach until a measurable trigger fires.
+
+### Changed
+
+- Conformance harness compares error responses by their `error` **code** (the machine contract), masking human-prose `message`/`suggestions`, and accepts an expected error raised at the `docx_open` step (hostile documents are refused at open).
+
 ## [0.1.0] - 2026-06-11
 
 ### Changed
@@ -30,4 +52,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Examples**: redline-review and bulk-rebrand (runnable, both SDKs), annotated agent-loop transcript, template-to-pdf (Phase 2 preview).
 - Design-first repository scaffold: architecture, roadmap, full documentation lanes, contribution tooling (commitlint, husky, lint-staged, prettier), CI/release/CodeQL workflows, and community templates.
 
-[unreleased]: https://github.com/ruwadgroup/docxengine/commits/main
+[unreleased]: https://github.com/ruwadgroup/docxengine/compare/v1.0.0-alpha.1...HEAD
+[1.0.0-alpha.1]: https://github.com/ruwadgroup/docxengine/compare/v0.1.0...v1.0.0-alpha.1
+[0.1.0]: https://github.com/ruwadgroup/docxengine/releases/tag/v0.1.0

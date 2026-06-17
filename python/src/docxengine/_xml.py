@@ -16,6 +16,9 @@ import re
 from collections.abc import Collection, Iterable, Iterator
 from dataclasses import dataclass
 
+from ._errors import ToolError
+from ._limits import max_xml_depth
+
 # The Unicode White_Space=Yes set, exactly as pinned by algorithms.md §1 step 3.
 WHITESPACE = (
     "\t\n\x0b\x0c\r \x85\xa0\u1680"
@@ -143,9 +146,16 @@ def iter_elements(
     """
     if hi is None:
         hi = len(data)
+    depth_cap = max_xml_depth()
     stack: list[tuple[str, int, int]] = []  # (name, start, inner_start)
     for kind, name, a, b in _tokens(data, lo, hi):
         if kind == "start":
+            if len(stack) >= depth_cap:
+                raise ToolError(
+                    "doc_too_large",
+                    f"XML nesting exceeds the {depth_cap}-level depth cap at byte {a}.",
+                    ["Raise DOCXENGINE_MAX_XML_DEPTH if the file is trusted."],
+                )
             stack.append((name, a, b))
         elif kind == "empty":
             depth = len(stack)

@@ -1,6 +1,6 @@
 {
   "name": "docx_insert",
-  "description": "Insert new content after or before an existing paragraph. Content accepts Markdown (multi-paragraph, headings, lists) or plain text; returns one fresh anchor per inserted paragraph. Use docx_read or docx_outline first to find the position anchor.",
+  "description": "Insert new content after or before an existing paragraph. Content accepts Markdown — headings, blockquotes, horizontal rules, bullet/numbered/task-list (`- [ ]`/`- [x]`) items, and inline bold/italic/code — or plain text; returns one fresh anchor per inserted paragraph. Use docx_read or docx_outline first to find the position anchor.",
   "input_schema": {
     "type": "object",
     "properties": {

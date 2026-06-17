@@ -137,6 +137,46 @@ _UL_RE = re.compile(r"^[-*]\s+(.*)$")
 _OL_RE = re.compile(r"^\d+\.\s+(.*)$")
 _TABLE_ROW_RE = re.compile(r"^\|(.+)\|\s*$")
 _TABLE_SEP_RE = re.compile(r"^\|?[\s:|-]+\|?$")
+#: GitHub task-list item (``- [ ] x`` / ``* [x] x``): the checkbox glyph replaces the bullet.
+_TASK_RE = re.compile(r"^[-*]\s+\[([ xX])\]\s?(.*)$")
+_BALLOT_EMPTY = "☐"  # ☐
+_BALLOT_CHECKED = "☒"  # ☒
+
+
+@dataclass(frozen=True, slots=True)
+class LineBlock:
+    """A single markdown line classified into a block kind (tables handled separately)."""
+
+    kind: str  # heading | quote | rule | task | ul | ol | plain
+    text: str = ""
+    level: int = 0
+
+
+def classify_line(line: str) -> LineBlock:
+    """Classify one markdown line into a §22/§6a block.
+
+    Task items carry their checkbox glyph folded into ``text`` (``☐ ``/``☒ ``) so
+    the bullet is dropped. Shared by ``docx_create`` (§22) and ``docx_insert`` (§6a).
+    """
+    heading = _HEADING_RE.match(line)
+    if heading:
+        return LineBlock("heading", heading.group(2), len(heading.group(1)))
+    quote = _QUOTE_RE.match(line)
+    if quote:
+        return LineBlock("quote", quote.group(1))
+    if _HR_RE.match(line.strip()):
+        return LineBlock("rule")
+    task = _TASK_RE.match(line)
+    if task:
+        glyph = _BALLOT_CHECKED if task.group(1).lower() == "x" else _BALLOT_EMPTY
+        return LineBlock("task", f"{glyph} {task.group(2)}")
+    ul = _UL_RE.match(line)
+    if ul:
+        return LineBlock("ul", ul.group(1))
+    ol = _OL_RE.match(line)
+    if ol:
+        return LineBlock("ol", ol.group(1))
+    return LineBlock("plain", line)
 
 
 def _split_row(line: str) -> list[str]:
@@ -293,32 +333,21 @@ def build_body(md: str) -> BuildState:
             _emit_table(state, rows, header)
             i = j
             continue
-        heading = _HEADING_RE.match(line)
-        if heading:
-            level = len(heading.group(1))
-            _emit_paragraph(state, heading.group(2), f"Heading{level}")
-            i += 1
-            continue
-        quote = _QUOTE_RE.match(line)
-        if quote:
-            _emit_paragraph(state, quote.group(1), "Quote")
-            i += 1
-            continue
-        if _HR_RE.match(line.strip()):
+        block = classify_line(line)
+        if block.kind == "heading":
+            _emit_paragraph(state, block.text, f"Heading{block.level}")
+        elif block.kind == "quote":
+            _emit_paragraph(state, block.text, "Quote")
+        elif block.kind == "rule":
             _emit_rule(state)
-            i += 1
-            continue
-        ul = _UL_RE.match(line)
-        if ul:
-            _emit_list_item(state, ul.group(1), "ul")
-            i += 1
-            continue
-        ol = _OL_RE.match(line)
-        if ol:
-            _emit_list_item(state, ol.group(1), "ol")
-            i += 1
-            continue
-        _emit_paragraph(state, line, None)
+        elif block.kind == "task":
+            _emit_paragraph(state, block.text, "ListParagraph")
+        elif block.kind == "ul":
+            _emit_list_item(state, block.text, "ul")
+        elif block.kind == "ol":
+            _emit_list_item(state, block.text, "ol")
+        else:
+            _emit_paragraph(state, block.text, None)
         i += 1
     return state
 

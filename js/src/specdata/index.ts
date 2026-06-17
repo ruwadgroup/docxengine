@@ -445,7 +445,7 @@ export const TOOL_SPECS: ToolSpec[] = [
   {
     name: "docx_insert",
     description:
-      "Insert new content after or before an existing paragraph. Content accepts Markdown (multi-paragraph, headings, lists) or plain text; returns one fresh anchor per inserted paragraph. Use docx_read or docx_outline first to find the position anchor.",
+      "Insert new content after or before an existing paragraph. Content accepts Markdown — headings, blockquotes, horizontal rules, bullet/numbered/task-list (`- [ ]`/`- [x]`) items, and inline bold/italic/code — or plain text; returns one fresh anchor per inserted paragraph. Use docx_read or docx_outline first to find the position anchor.",
     input_schema: {
       type: "object",
       properties: {
@@ -723,7 +723,7 @@ export const TOOL_SPECS: ToolSpec[] = [
       },
       required: ["doc_id", "summary", "n_paragraphs", "has_tracked_changes", "has_comments"],
     },
-    errors: ["open_failed", "doc_too_large", "path_denied"],
+    errors: ["open_failed", "doc_too_large", "malicious_content", "path_denied"],
   },
   {
     name: "docx_outline",
@@ -871,6 +871,8 @@ export const TOOL_SPECS: ToolSpec[] = [
       properties: {
         pages: {
           type: "array",
+          description:
+            "Renderer path only: one entry per rendered page with its image resource link. Omitted in the structural fallback (use page_count there).",
           items: {
             type: "object",
             properties: {
@@ -880,11 +882,16 @@ export const TOOL_SPECS: ToolSpec[] = [
               image: {
                 type: "string",
                 description:
-                  "Resource link like 'docx://d1/preview/page-1.png'. Present only when a renderer (LibreOffice) produced an image; omitted in the structural fallback.",
+                  "Resource link like 'docx://d1/preview/page-1.png'. Present only when a renderer (LibreOffice) produced an image.",
               },
             },
             required: ["page"],
           },
+        },
+        page_count: {
+          type: "integer",
+          description:
+            "Structural fallback only (renderer 'structural'): the estimated page count (ceil(total_chars / 1800)). Replaces the per-page array when no renderer ran.",
         },
         renderer: {
           type: "string",
@@ -892,13 +899,13 @@ export const TOOL_SPECS: ToolSpec[] = [
         structural: {
           type: "string",
           description:
-            "Structural fallback only (renderer 'structural'): the §2 projection of the resolved document with an estimated page count. Present when no render adapter is installed.",
+            "Structural fallback only (renderer 'structural'): the §2 projection of the resolved document. Present when no render adapter is installed.",
         },
         note: {
           type: "string",
         },
       },
-      required: ["pages", "renderer"],
+      required: ["renderer"],
     },
     errors: ["doc_not_found", "render_unavailable", "render_failed"],
   },
@@ -1725,8 +1732,16 @@ export const ERROR_SPECS: ErrorSpec[] = [
   {
     code: "doc_too_large",
     category: "session",
-    message_template: "Document exceeds configured memory caps.",
-    recovery: "Open with streaming options or split the document.",
+    message_template:
+      "Document exceeds configured resource caps (part count, uncompressed size, or compression ratio).",
+    recovery: "Split the document, or raise the DOCXENGINE_MAX_* limits if the file is trusted.",
+  },
+  {
+    code: "malicious_content",
+    category: "session",
+    message_template:
+      "Refusing {part}: the package contains hostile content (a DTD/entity declaration or pathological XML nesting).",
+    recovery: "Conformant Word documents never declare a DTD; treat this file as untrusted.",
   },
   {
     code: "path_denied",

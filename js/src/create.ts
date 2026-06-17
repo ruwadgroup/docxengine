@@ -114,7 +114,7 @@ const BR_RE = /<br\s*\/?>/gi;
 const LINE_BREAK_RUN = "<w:r><w:br/></w:r>";
 
 /** Emit the run sequence for an inline string; `<br>`/`\n` become `<w:br/>` soft breaks. */
-function emitInline(text: string): string {
+export function emitInline(text: string): string {
   return text
     .replace(BR_RE, "\n")
     .split("\n")
@@ -133,6 +133,44 @@ const UL_RE = /^[-*]\s+(.*)$/;
 const OL_RE = /^\d+\.\s+(.*)$/;
 const TABLE_ROW_RE = /^\|(.+)\|\s*$/;
 const TABLE_SEP_RE = /^\|?[\s:|-]+\|?$/;
+/** GitHub task-list item (`- [ ] x` / `* [x] x`): the checkbox glyph replaces the bullet. */
+const TASK_RE = /^[-*]\s+\[([ xX])\]\s?(.*)$/;
+const BALLOT_EMPTY = "☐"; // ☐
+const BALLOT_CHECKED = "☒"; // ☒
+
+/** A single markdown line classified into a block kind (tables are handled separately). */
+export type LineBlock =
+  | { kind: "heading"; level: number; text: string }
+  | { kind: "quote"; text: string }
+  | { kind: "rule" }
+  | { kind: "task"; text: string }
+  | { kind: "ul"; text: string }
+  | { kind: "ol"; text: string }
+  | { kind: "plain"; text: string };
+
+/**
+ * Classify one markdown line into a §22/§6a block. Task items carry their
+ * checkbox glyph folded into `text` (`☐ `/`☒ `) so the bullet is dropped.
+ * Shared by `docx_create` (§22) and `docx_insert` (§6a).
+ */
+export function classifyLine(line: string): LineBlock {
+  const heading = HEADING_RE.exec(line);
+  if (heading)
+    return { kind: "heading", level: (heading[1] as string).length, text: heading[2] as string };
+  const quote = QUOTE_RE.exec(line);
+  if (quote) return { kind: "quote", text: quote[1] as string };
+  if (HR_RE.test(line.trim())) return { kind: "rule" };
+  const task = TASK_RE.exec(line);
+  if (task) {
+    const glyph = (task[1] as string).toLowerCase() === "x" ? BALLOT_CHECKED : BALLOT_EMPTY;
+    return { kind: "task", text: `${glyph} ${task[2] as string}` };
+  }
+  const ul = UL_RE.exec(line);
+  if (ul) return { kind: "ul", text: ul[1] as string };
+  const ol = OL_RE.exec(line);
+  if (ol) return { kind: "ol", text: ol[1] as string };
+  return { kind: "plain", text: line };
+}
 
 interface NumberingPlan {
   /** abstractNumId/numId for ol (allocated lazily). */
@@ -309,32 +347,30 @@ function buildBody(md: string): BuildState {
       continue;
     }
 
-    const heading = HEADING_RE.exec(line);
-    if (heading) {
-      const level = (heading[1] as string).length;
-      emitParagraph(state, heading[2] as string, `Heading${level}`);
-      continue;
+    const block = classifyLine(line);
+    switch (block.kind) {
+      case "heading":
+        emitParagraph(state, block.text, `Heading${block.level}`);
+        break;
+      case "quote":
+        emitParagraph(state, block.text, "Quote");
+        break;
+      case "rule":
+        emitRule(state);
+        break;
+      case "task":
+        emitParagraph(state, block.text, "ListParagraph");
+        break;
+      case "ul":
+        emitListItem(state, block.text, "ul");
+        break;
+      case "ol":
+        emitListItem(state, block.text, "ol");
+        break;
+      case "plain":
+        emitParagraph(state, block.text, null);
+        break;
     }
-    const quote = QUOTE_RE.exec(line);
-    if (quote) {
-      emitParagraph(state, quote[1] as string, "Quote");
-      continue;
-    }
-    if (HR_RE.test(line.trim())) {
-      emitRule(state);
-      continue;
-    }
-    const ul = UL_RE.exec(line);
-    if (ul) {
-      emitListItem(state, ul[1] as string, "ul");
-      continue;
-    }
-    const ol = OL_RE.exec(line);
-    if (ol) {
-      emitListItem(state, ol[1] as string, "ol");
-      continue;
-    }
-    emitParagraph(state, line, null);
   }
   return state;
 }

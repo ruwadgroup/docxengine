@@ -12,8 +12,8 @@ Pre-1.0: only the latest release receives security fixes.
 
 DocxEngine parses untrusted documents and is driven by untrusted (LLM-generated) tool calls. Areas we treat as security surfaces:
 
-- **Malicious archives** — zip bombs, path traversal via crafted part names (`../`), oversized parts, decompression-ratio abuse. The OPC layer enforces part-name canonicalization and size/ratio limits.
-- **Hostile XML** — XXE, entity-expansion (billion laughs), and external DTD fetching. Parsers run with external entities and DTD resolution disabled; no network access during parse.
+- **Malicious archives** — zip bombs, path traversal via crafted part names (`../`), oversized parts, decompression-ratio abuse. The OPC layer canonicalizes part names (relationship targets cannot escape the package root) and enforces caps on part count, total and per-part uncompressed size, and compression ratio **before decompressing** — refused as `doc_too_large`. The caps are tunable via the `DOCXENGINE_MAX_*` environment variables (see [spec/algorithms.md](spec/algorithms.md) §27); defaults are generous for real documents.
+- **Hostile XML** — XXE, entity-expansion (billion laughs), and external DTD fetching. The no-DOM scanners never expand entities beyond the five XML built-ins; the DOM-parsed parts (content-types, rels, styles, comments) are screened at the OPC chokepoint, which **rejects any `<!DOCTYPE`/`<!ENTITY` declaration** (`malicious_content`) before a parser sees it. There is no network access during parse, and XML nested past `DOCXENGINE_MAX_XML_DEPTH` is refused.
 - **Tool-call injection** — path arguments from agent calls are confined to configured roots; `docx_open`/`docx_save` never follow arbitrary filesystem paths in server deployments.
 - **Render adapter** — LibreOffice is invoked headless on untrusted input; deployments should sandbox it (container/seccomp) and treat it as the highest-risk component. The core never requires it.
 - **Secret leakage** — document content may be sensitive; the engine never logs document text at default log levels, and previews/conversions are written only to caller-specified locations.

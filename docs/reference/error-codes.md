@@ -12,13 +12,14 @@ The complete catalog of structured error codes. Every error response carries `{e
 
 ## Documents & session
 
-| Code              | Meaning                                    | Typical recovery                                                     |
-| ----------------- | ------------------------------------------ | -------------------------------------------------------------------- |
-| `doc_not_found`   | Unknown/expired `doc_id`                   | `docx_open` again                                                    |
-| `open_failed`     | Not a valid docx / unreadable path         | check path; `file` says what it is                                   |
-| `doc_too_large`   | Exceeds configured memory caps             | open with streaming options / split                                  |
-| `path_denied`     | Path outside the server's configured roots | use an allowed path                                                  |
-| `not_implemented` | Tool not implemented in this build         | this tool lands in a later phase; see [ROADMAP.md](../../ROADMAP.md) |
+| Code                | Meaning                                                              | Typical recovery                                                      |
+| ------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `doc_not_found`     | Unknown/expired `doc_id`                                             | `docx_open` again                                                     |
+| `open_failed`       | Not a valid docx / unreadable path                                   | check path; `file` says what it is                                    |
+| `doc_too_large`     | Exceeds configured resource caps (parts, size, ratio, nesting depth) | split the document, or raise the `DOCXENGINE_MAX_*` limits if trusted |
+| `malicious_content` | Hostile content: a DTD/entity declaration (XXE / billion-laughs)     | the file is untrusted; conformant Word docs never declare a DTD       |
+| `path_denied`       | Path outside the server's configured roots                           | use an allowed path                                                   |
+| `not_implemented`   | Tool not implemented in this build                                   | this tool lands in a later phase; see [ROADMAP.md](../../ROADMAP.md)  |
 
 ## Edits
 
