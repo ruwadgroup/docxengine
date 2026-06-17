@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-17
+
+Stabilized at **1.0.0**.
+
+### Removed
+
+- **The JavaScript/TypeScript implementation (`@docxengine/core`) and the cross-language conformance/parity harness have been removed.** DocxEngine is now a **Python-only** package shipping the `docxengine-mcp` MCP server (`uvx docxengine-mcp`). The shared `spec/` JSON contract remains the source of truth for the tool schemas, and `conformance/corpus/` (Python tests) plus `conformance/fidelity/` (renderer fidelity) are retained.
+- **Repositioned around the MCP server.** The "SDK / library for integrators" framing is dropped — the SDK docs (`docs/sdks/`) and the JS examples (`*/run.mjs`) are removed. The Python package is presented as how you install and run the server; its in-process API stays but is no longer documented as a product surface.
+- Removed the Rust/WASM core-unification research doc (the dual-engine future it evaluated no longer applies), and the root Node tooling (pnpm workspace, husky, commitlint, lint-staged, prettier) that only existed to serve the JS package.
+- Release is now **PyPI-only** (the npm publish path is gone).
+
 ## [1.0.0-alpha.1] - 2026-06-16
 
 First public **alpha**. Phase 3 hardening: the engine now defends itself against hostile input, and the security claims in `SECURITY.md` are backed by code in both engines.
@@ -52,6 +63,7 @@ First public **alpha**. Phase 3 hardening: the engine now defends itself against
 - **Examples**: redline-review and bulk-rebrand (runnable, both SDKs), annotated agent-loop transcript, template-to-pdf (Phase 2 preview).
 - Design-first repository scaffold: architecture, roadmap, full documentation lanes, contribution tooling (commitlint, husky, lint-staged, prettier), CI/release/CodeQL workflows, and community templates.
 
-[unreleased]: https://github.com/ruwadgroup/docxengine/compare/v1.0.0-alpha.1...HEAD
+[unreleased]: https://github.com/ruwadgroup/docxengine/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/ruwadgroup/docxengine/compare/v1.0.0-alpha.1...v1.0.0
 [1.0.0-alpha.1]: https://github.com/ruwadgroup/docxengine/compare/v0.1.0...v1.0.0-alpha.1
 [0.1.0]: https://github.com/ruwadgroup/docxengine/releases/tag/v0.1.0

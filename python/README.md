@@ -1,15 +1,21 @@
-# docxengine (Python)
+# docxengine
 
-The Python implementation of [DocxEngine](../README.md): deterministic OOXML editing with tracked changes, hash-anchored addressing, and a token-efficient agent view. Ships the reference MCP server (`docxengine-mcp`).
+Deterministic OOXML editing with tracked changes, hash-anchored addressing, and a token-efficient agent view — exposed as an **MCP server** for AI agents. Editing the XML directly preserves tracked changes, comments, and footnotes that mainstream libraries drop.
 
 ```bash
-pip install docxengine
+pip install docxengine        # or: uvx docxengine-mcp  (zero-install run)
 ```
 
-Two surfaces: the **file-first MCP server** (`docxengine-mcp` — every tool takes a path, edits save automatically; `claude mcp add docx -- docxengine-mcp`) and the **storage-agnostic library** (`call()` + `Document`, in-memory `doc_id`/bytes handles you persist with `save(path)` or `to_bytes()`). See the usage guide.
+The **file-first MCP server** (`docxengine-mcp`): every tool takes a file `path`, and each edit is validated and saved back automatically — no handle to track, no save step.
 
-- Usage: [docs/sdks/python.md](../docs/sdks/python.md)
+```bash
+docxengine-mcp                              # stdio
+claude mcp add docx -- uvx docxengine-mcp   # Claude Code
+```
+
+- MCP server: [docs/mcp/server.md](../docs/mcp/server.md)
+- Tool reference: [docs/tools/index.md](../docs/tools/index.md)
 - Contract: [spec/](../spec/)
-- Layout: `src/docxengine/` (package), `tests/` (pytest)
+- Layout: `src/docxengine/` (package + server), `tests/` (pytest)
 
-This implementation must stay byte-equivalent-after-normalization with [`@docxengine/core`](../js/) on the [conformance corpus](../conformance/) — a feature isn't done until it passes in both.
+The public tool contract lives in [spec/](../spec/) and is validated against the [conformance corpus](../conformance/).

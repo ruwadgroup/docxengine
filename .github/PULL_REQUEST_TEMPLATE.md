@@ -21,7 +21,7 @@
 - [ ] revisions & comments (tracked changes / w:ins / w:del)
 - [ ] validate / render (validation gate / repair / preview)
 - [ ] mcp (server / transports / resources)
-- [ ] py / js / adapters
+- [ ] py (package / adapters)
 - [ ] spec / conformance / bench
 - [ ] docs
 
@@ -30,8 +30,7 @@
 <!-- What did you test? Which corpus documents? Did you verify the result
 opens in Word/LibreOffice without a "repair" prompt? -->
 
-- Implementations touched: Python / TS / both
-- Conformance cases added/updated:
+- Tests added/updated:
 
 ## Checklist
 
@@ -39,7 +38,6 @@ opens in Word/LibreOffice without a "repair" prompt? -->
 - [ ] **Validation gate honored** — no path saves a document that fails `docx_validate`; zero Word "repair" prompts.
 - [ ] **Anchors stay safe** — edits validate the content hash first and return fresh anchors.
 - [ ] **Token economy** — no tool response can exceed ~25k tokens; raw OOXML is not exposed by default.
-- [ ] **Parity** — behavior matches across Python and TS, with conformance cases proving it (or the divergence is documented and tracked).
 - [ ] Contract changes in `spec/` are versioned with a changelog note.
 - [ ] Docs updated if behavior or contract changed.
 - [ ] Commits follow Conventional Commits.

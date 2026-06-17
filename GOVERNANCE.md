@@ -15,11 +15,11 @@ DocxEngine is an open-source project maintained under the [Ruwad Group](https://
 
 ## The tool contract is a stability surface
 
-The JSON Schemas in [`spec/`](spec/) are the public contract consumed by MCP clients, OpenAI function-calling, and both SDKs:
+The JSON Schemas in [`spec/`](spec/) are the public contract consumed by MCP clients:
 
 - Breaking changes require a versioned schema revision and a deprecation note in the changelog.
 - Additive changes (new optional fields, new tools) are preferred over mutations.
-- Both implementations and the conformance harness must land in the same release as any contract change.
+- The implementation and its tests must land in the same release as any contract change.
 
 ## Releases
 

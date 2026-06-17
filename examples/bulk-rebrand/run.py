@@ -1,4 +1,4 @@
-"""Bulk rebrand via the Python SDK. Prereq: pip install -e ../../python && python make_input.py"""
+"""Bulk rebrand via the docxengine package. Prereq: pip install -e ../../python && python make_input.py"""
 
 from docxengine import call
 

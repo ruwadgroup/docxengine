@@ -1,6 +1,6 @@
 # Conformance
 
-The cross-implementation conformance suite: the same input document + the same tool call must produce **byte-equivalent-after-normalization** output in Python and TypeScript, and every document must round-trip without triggering Word repair. Background: [docs/conformance/corpus.md](../docs/conformance/corpus.md).
+Shared input fixtures and the renderer-fidelity harness. The corpus pins real OOXML structures the engine must round-trip without triggering Word repair; the Python test suite opens these fixtures directly to assert deterministic, stable output. Background: [docs/conformance/corpus.md](../docs/conformance/corpus.md).
 
 ## Layout
 
@@ -10,32 +10,16 @@ conformance/
 │   └── <name>/
 │       ├── input.docx
 │       └── meta.json          # producer, features exercised, notes
-├── cases/             # test cases referencing corpus docs
-│   └── <name>.json            # {doc, tool, args, expect: {result|error, output_normalized_sha}}
-└── harness/           # the runner: executes cases against both implementations and diffs
+├── harness/
+│   └── make_fixtures.py       # deterministic corpus generator (reused by bench/)
+└── fidelity/          # renderer fidelity harness (structural + LibreOffice when present)
 ```
 
-## Case format
+## How it's used
 
-```json
-{
-  "doc": "redline-contract",
-  "tool": "docx_replace",
-  "args": {
-    "anchor": "P4#d4e5",
-    "old": "five (5) years",
-    "new": "three (3) years",
-    "track_changes": true,
-    "author": "Test"
-  },
-  "expect": {
-    "result": { "n_replaced": 1 },
-    "invariants": ["roundtrip", "no_word_repair", "revisions_preserved"]
-  }
-}
-```
-
-The harness runs each case through `docxengine` (Python) and `@docxengine/core` (TS), normalizes both outputs (fixed ZIP entry order, zeroed timestamps, canonicalized XML in touched parts), and fails on any byte difference between implementations or any violated invariant.
+- **Python tests** (`python/tests/test_edit.py`, `test_read.py`, `test_revisions.py`) open fixtures from `corpus/` and assert exact results — guarded by `skipif(not CORPUS.is_dir())`.
+- **`bench/`** regenerates the corpus deterministically via `harness/make_fixtures.py` (never reimplemented).
+- **Fidelity** (`make fidelity`) runs `fidelity/run.py` — structural checks everywhere, LibreOffice visual rendering when available.
 
 ## Rules for corpus contributions
 
@@ -44,4 +28,4 @@ The harness runs each case through `docxengine` (Python) and `@docxengine/core` 
 3. `meta.json` must name the producer (application + version) and the features exercised.
 4. Corrupt-on-purpose fixtures go in `corpus/corrupt-*` and are expected to fail validation in a _defined_ way.
 
-Run locally: `make conformance`.
+Regenerate the corpus: `python conformance/harness/make_fixtures.py`. Run fidelity: `make fidelity`.

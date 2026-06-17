@@ -19,22 +19,19 @@ Every PR must preserve these — they are the project (full list in [ARCHITECTUR
 - **Hash-guarded edits**: no edit lands on a paragraph whose anchor hash fails validation.
 - **Token economy**: no tool response exceeds ~25k tokens; raw OOXML is never returned by default.
 - **Determinism**: no LLM in the core; identical inputs produce identical bytes.
-- **Parity**: Python and TS stay byte-equivalent-after-normalization on the conformance corpus — a feature is not done until it passes in both.
 - **Thin faces**: MCP server and framework adapters translate formats only; behavior lives in the core.
 
 ## Development setup
 
-| Tool        | Version | Used for                                   |
-| ----------- | ------- | ------------------------------------------ |
-| Python      | ≥3.12   | `docxengine` package, MCP server           |
-| Node.js     | ≥22     | `@docxengine/core`, repo tooling           |
-| pnpm        | 10.x    | Repo tooling (prettier, commitlint, husky) |
-| LibreOffice | any     | Optional — render adapter tests/previews   |
+| Tool        | Version | Used for                                 |
+| ----------- | ------- | ---------------------------------------- |
+| Python      | ≥3.12   | `docxengine` package, MCP server         |
+| LibreOffice | any     | Optional — render adapter tests/previews |
 
 ```bash
 git clone https://github.com/ruwadgroup/docxengine.git
 cd docxengine
-make setup   # pnpm install + husky hooks
+make setup   # pip install -e "python[dev]"
 ```
 
 ## Workflow
@@ -46,15 +43,13 @@ make setup   # pnpm install + husky hooks
 
 ## Checks (must pass before merge)
 
-- `pnpm format:check` — Prettier on Markdown/JSON/YAML
-- `make lint` — language linters (ruff for Python, as code lands)
-- `make test` — unit tests in both implementations
-- `make conformance` — cross-implementation conformance harness
-- Commit messages pass commitlint (enforced by the husky `commit-msg` hook)
+- `make lint` — ruff over the Python package
+- `make test` — Python unit tests (includes the corpus checks over `conformance/corpus/`)
+- `make fidelity` — renderer fidelity harness (optional; uses LibreOffice when present)
 
 ## Commit style
 
-We use [Conventional Commits](https://www.conventionalcommits.org). Scopes follow the subsystem names: `core`, `opc`, `anchors`, `projector`, `edit`, `revisions`, `comments`, `tables`, `styles`, `validate`, `render`, `mcp`, `py`, `js`, `adapters`, `spec`, `conformance`, `bench`, `docs`, `examples`, `ci`, `deps`, `release`.
+We use [Conventional Commits](https://www.conventionalcommits.org). Scopes follow the subsystem names: `core`, `opc`, `anchors`, `projector`, `edit`, `revisions`, `comments`, `tables`, `styles`, `validate`, `render`, `mcp`, `py`, `adapters`, `spec`, `conformance`, `bench`, `docs`, `examples`, `ci`, `deps`, `release`.
 
 Examples:
 

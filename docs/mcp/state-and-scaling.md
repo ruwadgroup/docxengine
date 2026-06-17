@@ -10,7 +10,7 @@ docx_search / docx_replace / …   (each: open report.docx → edit → validate
 docx_outline / docx_read         (each: open report.docx → render, no write)
 ```
 
-There is no `doc_id` to track and no explicit save: an edit in one call is on disk for the next. (The SDK `call()` surface and the §11 CLI keep the in-memory `doc_id` handle — see the [SDK docs](../sdks/python.md) — but the server does not expose it.)
+There is no `doc_id` to track and no explicit save: an edit in one call is on disk for the next. (Internally the engine and the §11 CLI keep an in-memory `doc_id` handle, but the server does not expose it.)
 
 ## Sessions
 

@@ -1,6 +1,6 @@
 # The tool contract
 
-This directory is the **source of truth** for DocxEngine's public interface. Everything else — MCP `tools/list`, the OpenAI/Anthropic adapters, both SDKs' input validation, and the conformance harness — is generated from or validated against these files.
+This directory is the **source of truth** for DocxEngine's public interface. Everything else — the MCP `tools/list`, input validation, and the tests — is generated from or validated against these files.
 
 ## Layout
 
@@ -19,7 +19,7 @@ spec/
 1. **No behavior lives here** — only shape: names, descriptions, parameter schemas, result schemas, error codes.
 2. **Descriptions are written for agents.** They state what the tool does, when to use it, and what to call first. They are part of the interface and get refined from benchmark transcripts.
 3. **Common parameters are identical everywhere**: `doc_id`, `anchor`, `track_changes`, `author`, `response_format` mean the same thing in every tool.
-4. **Changes follow governance** ([GOVERNANCE.md](../GOVERNANCE.md)): additive preferred; breaking changes bump the contract version and land with both implementations + conformance updates in the same release.
+4. **Changes follow governance** ([GOVERNANCE.md](../GOVERNANCE.md)): additive preferred; breaking changes bump the contract version and land with the implementation + test updates in the same release.
 5. **JSON Schema dialect**: the draft 2020-12 subset that MCP, OpenAI, and Anthropic all accept (no `$dynamicRef`, no remote `$ref`).
 
 ## File shape
@@ -34,4 +34,4 @@ spec/
 }
 ```
 
-`result_schema` and `errors` are DocxEngine extensions consumed by the SDKs and the conformance harness; adapters strip them when a target format doesn't accept them.
+`result_schema` and `errors` are DocxEngine extensions consumed by the implementation and its tests; the MCP `tools/list` strips them (MCP advertises only `input_schema`).

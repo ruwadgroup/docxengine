@@ -1,4 +1,4 @@
-"""Fill an MSA template, validate, and convert to Markdown via the Python SDK.
+"""Fill an MSA template, validate, and convert to Markdown via the docxengine package.
 
 Prereq: pip install -e ../../python && python make_input.py
 

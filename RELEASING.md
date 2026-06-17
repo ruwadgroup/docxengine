@@ -1,25 +1,28 @@
 # Releasing
 
-DocxEngine releases are tag-driven and automated by the [release workflow](.github/workflows/release.yml). Python (`docxengine` on PyPI) and JS (`@docxengine/core` on npm) are released **in lockstep with the same version** — the conformance suite guarantees they implement the same contract, so they share a version number.
+DocxEngine releases are tag-driven and automated by the [release workflow](.github/workflows/release.yml). `docxengine` is published to **PyPI** via trusted publishing (OIDC) — no long-lived tokens.
 
 ## Versioning
 
-- [SemVer](https://semver.org). Pre-1.0: minor bumps may break; patch bumps never do.
+- [SemVer](https://semver.org).
 - The tool contract in [`spec/`](spec/) carries its own schema version; a breaking contract change forces at least a minor bump and a changelog deprecation note.
 
 ## Process
 
-1. Ensure `main` is green: CI, conformance harness, benchmark smoke run.
+1. Ensure `main` is green: CI + test suite.
 2. Update [CHANGELOG.md](CHANGELOG.md) — move `Unreleased` items under the new version with the date.
-3. Bump versions: `python/pyproject.toml`, `js/package.json` (same number).
+3. Bump the version in `python/pyproject.toml` (and the runtime `__version__` in `python/src/docxengine/__init__.py`).
 4. Commit: `chore(release): vX.Y.Z`, then tag: `git tag vX.Y.Z && git push origin vX.Y.Z`.
-5. The release workflow builds both packages, runs the full test + conformance matrix, publishes to PyPI/npm with provenance/attestations, and drafts the GitHub release from the changelog.
-6. Verify the published artifacts install cleanly (`pip install docxengine==X.Y.Z`, `npm i @docxengine/core@X.Y.Z`).
+5. Run the release workflow (manual `workflow_dispatch`, or re-enable the tag trigger). It runs the full test suite, builds the sdist + wheel, publishes to PyPI via trusted publishing, and drafts the GitHub release from the changelog.
+6. Verify the published artifact installs cleanly (`pip install docxengine==X.Y.Z`) and the server runs (`uvx docxengine-mcp`).
+
+## One-time PyPI trusted-publishing setup
+
+Configure a [Trusted Publisher](https://docs.pypi.org/trusted-publishers/) on the `docxengine` PyPI project pointing at: repo `ruwadgroup/docxengine`, workflow `release.yml`, environment `release`. No API token is stored anywhere.
 
 ## Release checklist
 
 - [ ] CI green on `main`
-- [ ] Conformance suite passes in both implementations
-- [ ] CHANGELOG updated, versions bumped in lockstep
+- [ ] CHANGELOG updated, version bumped
 - [ ] No unresolved security advisories
 - [ ] Contract changes (if any) documented with migration notes

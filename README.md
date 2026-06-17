@@ -4,12 +4,11 @@
 
 **Surgical, fidelity-preserving DOCX editing for AI agents — and for you.**
 
-One deterministic core that edits OOXML directly (unzip → patch XML → rezip), exposed through three thin faces: an **MCP server**, a **Python package** (`docxengine`), and a **JS/TS package** (`@docxengine/core`). Agents see a token-efficient, Markdown-like projection with content-hash-anchored paragraph IDs — never raw XML.
+One deterministic core that edits OOXML directly (unzip → patch XML → rezip), exposed as an **MCP server** and a **Python package** (`docxengine`). Agents see a token-efficient, Markdown-like projection with content-hash-anchored paragraph IDs — never raw XML.
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/ruwadgroup/docxengine/actions/workflows/ci.yml/badge.svg)](https://github.com/ruwadgroup/docxengine/actions/workflows/ci.yml)
 [![Python ≥3.12](https://img.shields.io/badge/python-%E2%89%A53.12-blue)](python/)
-[![Node ≥22](https://img.shields.io/badge/node-%E2%89%A522-brightgreen)](js/)
 [![MCP](https://img.shields.io/badge/MCP-stdio%20%2B%20streamable--http-8A2BE2)](docs/mcp/server.md)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://conventionalcommits.org)
 [![Release](https://img.shields.io/github/v/tag/ruwadgroup/docxengine?sort=semver&label=release&color=blue)](https://github.com/ruwadgroup/docxengine/releases)
@@ -51,12 +50,11 @@ DocxEngine packages that strategy as a reusable engine:
 
 - **Fidelity-preserving surgical edits** — replace, insert, delete, and rewrite paragraphs in arbitrary existing documents without disturbing tracked changes, comments, footnotes, styles, or media.
 - **Real redlines** — first-class tracked-change writing (`track_changes: true, author: "..."`), plus accept/reject filtered by author or date.
-- **Token-efficient reading** — outline first, then paginated, Markdown-like projections with only salient formatting; raw OOXML is never shown by default.
+- **Token-efficient reading** — outline first, then paginated, Markdown-like projections with only salient formatting; raw OOXML is never shown by default. Text-first tools return Markdown over MCP, not JSON-wrapped strings.
 - **Hash-anchored addressing** — every paragraph gets a `P{index}#{hash}` anchor validated before each edit; edits return fresh anchors so agents never re-list mid-batch.
 - **Always-on validation gate** — ID uniqueness, orphaned relationships, dangling footnotes, and content-type errors are caught before save, with auto-repair where safe.
 - **Comments, tables, styles, sections, lists, media, fields, templates** — the full capability surface is implemented: threaded comments with resolve state, style-definition edits, mustache template merge with loops, Markdown↔docx conversion, and field-code insertion.
-- **Triple distribution** — MCP server (stdio + Streamable HTTP), `pip install docxengine`, `npm install @docxengine/core`; the published JSON Schemas plug into any framework, with a thin OpenAI function-calling adapter included.
-- **One conformance-tested contract** — the Python and TypeScript implementations are kept honest by a shared JSON tool contract and a cross-implementation conformance corpus.
+- **MCP-native distribution** — an MCP server (stdio + Streamable HTTP) plus `pip install docxengine`; the published JSON Schemas plug into any framework, with thin OpenAI/Anthropic adapters included.
 
 ## Why DocxEngine
 
@@ -74,7 +72,7 @@ Agents are a new class of end-user, and tools must be designed for them rather t
 
 - **Not a renderer.** Fields, TOC entries, and page numbers only materialize when Word or LibreOffice renders; the engine inserts and updates _field codes_ and tells agents so explicitly.
 - **Not a template DSL.** `docx_template_fill` covers mustache-style merge with loops and conditions, but DocxEngine's center of gravity is _arbitrary surgical edits of existing documents_.
-- **Not a python-docx/docx-js wrapper.** Those libraries drop the document features this project exists to preserve; they appear at most in narrow create paths.
+- **Not a python-docx wrapper.** That library drops the document features this project exists to preserve; it appears at most in narrow create paths.
 - **Not Word automation.** No COM, no Office.js host, no GUI — server-side and offline by design.
 
 ## Architecture
@@ -82,10 +80,9 @@ Agents are a new class of end-user, and tools must be designed for them rather t
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │  Integration faces (thin)                                      │
-│  1. MCP server (stdio + streamable-HTTP)                       │
+│  1. MCP server (stdio + streamable-HTTP) — file-first          │
 │  2. Python package  (docxengine)   — JSON-in/JSON-out + native │
-│  3. JS/TS package   (@docxengine)  — JSON-in/JSON-out + native │
-│     + OpenAI function-calling adapter (thin)                   │
+│     + OpenAI/Anthropic tool-schema adapters (thin)             │
 ├──────────────────────────────────────────────────────────────┤
 │  Core engine (deterministic, no LLM)                           │
 │   • OPC/ZIP package model      • Style cascade resolver        │
@@ -97,7 +94,7 @@ Agents are a new class of end-user, and tools must be designed for them rather t
 └──────────────────────────────────────────────────────────────┘
 ```
 
-v1 ships **parallel Python and TypeScript implementations** against a shared JSON contract ([`spec/`](spec/)) and a shared conformance corpus — pure-`pip` and pure-`npm` installs with zero native toolchain. A Rust/WASM core unification is a v2 evaluation. The full reasoning, including the addressing design and tool surface, is in [ARCHITECTURE.md](ARCHITECTURE.md).
+DocxEngine is a pure-`pip` install with zero native toolchain. The public tool contract lives in [`spec/`](spec/) (language-agnostic JSON Schemas) and is the source of truth for the MCP `tools/list`, the framework adapters, and input validation. The full reasoning, including the addressing design and tool surface, is in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## The agent view
 
@@ -123,25 +120,31 @@ See [Concepts](docs/start/concepts.md) for anchors, projection, and the validati
 
 ## Getting started
 
-> Not yet published to PyPI/npm — install from source. All 24 tools work today; see the [Quickstart](docs/start/quickstart.md) and [examples/](examples/).
-
 ```bash
-git clone https://github.com/ruwadgroup/docxengine.git && cd docxengine
+# Install (PyPI)
+pip install docxengine
 
-# Python (+ the MCP server entry point)
-pip install -e python
+# Or run the MCP server with zero install (uv)
+uvx docxengine-mcp
 
-# JS/TS
-pnpm install && pnpm --dir js build
-
-# MCP (Claude Desktop / any MCP client) — stdio
+# Claude Desktop / any MCP client — stdio
 docxengine-mcp
 
 # Claude Code
-claude mcp add docx -- docxengine-mcp
+claude mcp add docx -- uvx docxengine-mcp
 ```
 
-Over MCP the engine is **file-first**: tools take a file `path` and every edit is validated and saved back automatically — no handles to track, no save step. The Python/JS packages keep an in-memory `doc_id`/bytes handle (the right fit for embedding, including browser JS); see the [SDK docs](docs/sdks/python.md).
+MCP client config (Claude Desktop / Cursor):
+
+```json
+{
+  "mcpServers": {
+    "docxengine": { "command": "uvx", "args": ["docxengine-mcp"] }
+  }
+}
+```
+
+Over MCP the engine is **file-first**: tools take a file `path` and every edit is validated and saved back automatically — no handles to track, no save step.
 
 ## Documentation
 
@@ -151,7 +154,6 @@ Over MCP the engine is **file-first**: tools take a file `path` and every edit i
 | [Core](docs/core/ooxml-pitfalls.md)       | OOXML pitfalls, anchors, projection, tracked changes, validation, rendering |
 | [Tools](docs/tools/index.md)              | The full agent-computer interface, group by group, plus error design        |
 | [MCP](docs/mcp/server.md)                 | Transports, resources, session state, scaling                               |
-| [SDKs](docs/sdks/python.md)               | Python & JS packages, framework adapters                                    |
 | [Conformance](docs/conformance/corpus.md) | Round-trip fidelity corpus, agent task benchmark                            |
 | [Research](docs/research/prior-art.md)    | Prior art, key findings, competitive landscape                              |
 | [Reference](docs/reference/glossary.md)   | Glossary, tool schemas, error codes                                         |
@@ -163,9 +165,8 @@ Start at [docs/README.md](docs/README.md).
 ```
 docxengine/
 ├── spec/            # Language-agnostic JSON tool contract (the source of truth)
-├── python/          # docxengine — Python implementation (pip)
-├── js/              # @docxengine/core — TypeScript implementation (npm)
-├── conformance/     # Shared corpus + cross-implementation harness
+├── python/          # docxengine — Python implementation + MCP server (pip)
+├── conformance/     # Shared corpus + renderer fidelity harness
 ├── examples/        # End-to-end agent flows
 ├── docs/            # Design docs, tool reference, guides
 └── .github/         # CI, release, security scanning, templates
@@ -173,7 +174,7 @@ docxengine/
 
 ## Roadmap & status
 
-**Public alpha (v1.0.0-alpha.1). Phases 0–2 complete; Phase 3 hardening substantially landed.** All 24 tools are implemented and conformance-tested in both languages: 473 Python tests, 355 TS tests, 36/36 cross-implementation parity cases, and a 10-task agent benchmark passing end-to-end over the file-first MCP server with zero tool errors and zero Word-repair events. This cut adds hostile-input hardening in both engines (zip-bomb caps, `<!DOCTYPE`/`<!ENTITY` rejection, XML depth caps, path-traversal clamping — all tunable via `DOCXENGINE_MAX_*`; see [SECURITY.md](SECURITY.md)), adversarial test suites, a large-document perf benchmark (`make perf`), a cross-renderer fidelity harness (`make fidelity`), and the [Rust/WASM core evaluation](docs/research/rust-wasm-core.md). Remaining: baseline benchmark comparisons, large-document streaming, and a batch-splice fix for `replace {all: true}`. Full plan with decision thresholds: [ROADMAP.md](ROADMAP.md).
+**Stable (v1.0.0).** All 24 tools are implemented and tested: 476 Python tests, plus a 10-task agent benchmark passing end-to-end over the file-first MCP server with zero tool errors and zero Word-repair events. Hostile-input hardening is built in (zip-bomb caps, `<!DOCTYPE`/`<!ENTITY` rejection, XML depth caps, path-traversal clamping — all tunable via `DOCXENGINE_MAX_*`; see [SECURITY.md](SECURITY.md)), alongside adversarial test suites, a large-document perf benchmark (`make perf`), and a cross-renderer fidelity harness (`make fidelity`). Full plan: [ROADMAP.md](ROADMAP.md).
 
 ## Contributing
 

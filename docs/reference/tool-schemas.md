@@ -1,6 +1,6 @@
 # Tool schemas
 
-Every tool's JSON Schema lives in [`spec/tools/`](../../spec/tools/) — one file per tool, named after the tool. These files are the **source of truth**: MCP `tools/list`, the OpenAI adapter, the Anthropic adapter, and both SDKs' input validation are all generated from them. Nothing is hand-maintained twice.
+Every tool's JSON Schema lives in [`spec/tools/`](../../spec/tools/) — one file per tool, named after the tool. These files are the **source of truth**: the MCP `tools/list` and input validation are generated from them. Nothing is hand-maintained twice.
 
 ## Schema conventions
 
@@ -45,4 +45,4 @@ Every tool's JSON Schema lives in [`spec/tools/`](../../spec/tools/) — one fil
 
 ## Versioning
 
-The contract is a stability surface ([GOVERNANCE.md](../../GOVERNANCE.md)): additive changes preferred; breaking changes require a schema version bump, a changelog deprecation note, and same-release updates to both implementations and the conformance harness.
+The contract is a stability surface ([GOVERNANCE.md](../../GOVERNANCE.md)): additive changes preferred; breaking changes require a schema version bump, a changelog deprecation note, and same-release updates to the implementation and its tests.

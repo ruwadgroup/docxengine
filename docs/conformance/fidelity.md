@@ -1,6 +1,6 @@
 # Cross-renderer fidelity
 
-The [conformance suite](../../conformance/) proves the two engines produce **byte-identical** packages (Python ↔ TypeScript parity). Fidelity asks a different, harder question: when a real word processor _lays the document out_, does it look right — and does it look the same in Word, LibreOffice, and Google Docs?
+The [conformance corpus](../../conformance/) and the Python test suite prove the engine produces **deterministic, stable** packages that round-trip without Word repair. Fidelity asks a different, harder question: when a real word processor _lays the document out_, does it look right — and does it look the same in Word, LibreOffice, and Google Docs?
 
 This is the Phase 3 "cross-renderer fidelity checks" item. It is **partly manual by necessity**: Word and Google Docs have no headless, scriptable, license-clean rendering path that runs in CI. So fidelity is split into an automated tier that runs everywhere and a manual protocol for the renderers that need a human or a proprietary app.
 
@@ -18,7 +18,7 @@ This is the Phase 3 "cross-renderer fidelity checks" item. It is **partly manual
 
 Exit status is non-zero only on a structural inconsistency, or on a render error **when a renderer is present**. With no renderer installed it reports "structural only" and passes.
 
-> Visual output is intentionally **not** part of the byte-parity conformance suite: renderer output is non-deterministic (timestamps, font substitution, layout-engine version), so it is reviewed, not diffed for equality. See [§10 normalization](../../spec/algorithms.md) for why parity is asserted on the _package_, not the _rendering_.
+> Visual output is intentionally **not** part of the byte-stability checks: renderer output is non-deterministic (timestamps, font substitution, layout-engine version), so it is reviewed, not diffed for equality. See [§10 normalization](../../spec/algorithms.md) for why stability is asserted on the _package_, not the _rendering_.
 
 ## The manual protocol (Word · LibreOffice · Google Docs)
 

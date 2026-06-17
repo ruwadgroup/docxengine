@@ -1,9 +1,0 @@
-{
-  "doc": "redlines",
-  "tool": "docx_revision",
-  "args": { "op": "reject_all" },
-  "expect": {
-    "result": { "rejected": 4 },
-    "invariants": ["no_word_repair"]
-  }
-}

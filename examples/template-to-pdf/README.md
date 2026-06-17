@@ -8,8 +8,7 @@ Fill an MSA template from JSON data, validate, and convert it for delivery.
 
 ```bash
 python make_input.py                 # builds msa-template.docx (mustache placeholders + a loop)
-python run.py                        # Python SDK
-node run.mjs                         # JS SDK (after: pnpm --dir ../../js build)
+python run.py
 ```
 
 ## The flow

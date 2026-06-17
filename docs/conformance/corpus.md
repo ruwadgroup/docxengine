@@ -1,11 +1,11 @@
 # Conformance corpus
 
-The corpus is what keeps two parallel implementations honest and what proves the fidelity invariant. Layout and harness rules live in [conformance/README.md](../../conformance/README.md); this page explains what goes in it and why.
+The corpus is what keeps the engine honest and what proves the fidelity invariant. Layout and harness rules live in [conformance/README.md](../../conformance/README.md); this page explains what goes in it and why.
 
 ## What the corpus tests
 
 1. **Round-trip identity** — for every document: open→save must be byte-stable modulo normalization, reopen must show zero semantic diff, and Word must show zero "repair" prompts.
-2. **Cross-implementation parity** — the same document + the same tool call must produce byte-equivalent-after-normalization output in Python and TS. Every conformance case is `(input.docx, tool_call.json, expected_output)`.
+2. **Deterministic output** — the same document + the same tool call must produce byte-equivalent-after-normalization output on every run. The Python test suite pins exact results against these fixtures.
 3. **Content faithfulness** — projections drop no text, hallucinate no text, and preserve reading order.
 
 ## Composition targets
