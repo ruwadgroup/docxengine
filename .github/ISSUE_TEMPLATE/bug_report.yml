@@ -16,20 +16,17 @@ body:
         - render / convert
         - mcp (server / transports)
         - python package
-        - js package
         - adapters
         - other
     validations:
       required: true
   - type: dropdown
-    id: implementation
+    id: surface
     attributes:
-      label: Implementation
+      label: Surface
       options:
-        - Python
-        - JS/TS
-        - Both
         - MCP server
+        - python package
         - Not sure
     validations:
       required: true

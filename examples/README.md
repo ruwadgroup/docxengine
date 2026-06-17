@@ -1,6 +1,6 @@
 # Examples
 
-End-to-end flows demonstrating the engine from each face. Each is self-contained: a synthetic input generator (`make_input.py`), the exact tool calls, and equivalent Python/JS scripts. All examples are runnable today (PDF output in template-to-pdf additionally needs LibreOffice).
+End-to-end flows demonstrating the engine from each face. Each is self-contained: a synthetic input generator (`make_input.py`), the exact tool calls, and a Python script (`run.py`). All examples are runnable today (PDF output in template-to-pdf additionally needs LibreOffice).
 
 | Example            | Shows                                                                                             |
 | ------------------ | ------------------------------------------------------------------------------------------------- |

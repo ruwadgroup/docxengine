@@ -1,6 +1,6 @@
 # Algorithms
 
-The language-agnostic algorithm specification. The Python (`python/`) and TypeScript (`js/`) implementations both follow this document exactly; the conformance harness ([conformance/README.md](../conformance/README.md)) asserts their outputs are **byte-equivalent after normalization** (§10). Where this spec pins a choice, the choice is normative — "reasonable alternative" implementations are conformance failures.
+The algorithm specification. The Python implementation (`python/`) follows this document exactly; outputs are **deterministic and stable across runs** (§10). Where this spec pins a choice, the choice is normative — "reasonable alternative" behavior is a conformance failure.
 
 Behavioral background lives in [docs/core/](../docs/core/); this file pins the bytes.
 
@@ -153,7 +153,7 @@ A full-paragraph rewrite under tracking is auto-diffed:
 
 ### 6a. Edit-surface pins (MVP)
 
-Behavior the tool schemas leave open, pinned for cross-implementation parity:
+Behavior the tool schemas leave open, pinned for determinism:
 
 - **§6 insert-only spans** — a pure insertion's `w:ins` run takes the `rPr` of the run containing the insertion offset (the run being split, or the run starting exactly there); an end-of-paragraph insertion takes the last run's `rPr`; an empty paragraph yields no `rPr`. Delete spans keep each overlapped run's own `rPr` (§5).
 - **§6 keep/replace spans** — a kept span re-emits each overlapped run's kept portion as one run with that run's own `rPr` (consecutive `w:t` pieces of the same run concatenate). A `w:ins` that directly follows a `w:del` at the same position (a replacement) takes the **first deleted run's** `rPr` (§5), not the insertion-offset rule. Wrapper ids are allocated in emission order (§5).
@@ -189,7 +189,7 @@ Severity `error` blocks `docx_save` (`validation_failed`); `warning` never block
 
 ### 8a. Pinned issue surface
 
-`docx_validate` results are parity-compared deep-equal, so the issue list is pinned. `valid` is `true` iff no issue has severity `error`. Issues are emitted in check order **a → e**, scan order within a check as below; every issue carries `severity`, `part`, `message`, `fix_hint`.
+`docx_validate` results are deterministic, so the issue list is pinned. `valid` is `true` iff no issue has severity `error`. Issues are emitted in check order **a → e**, scan order within a check as below; every issue carries `severity`, `part`, `message`, `fix_hint`.
 
 - **a** — package entries in zip order, skipping directory entries and `[Content_Types].xml` itself. Uncovered part → error, `part` = the part name, message `Part {name} is not covered by [Content_Types].xml (no Override, no Default for extension '{ext}').` (`{ext}` = lowercased extension of the entry's basename, `""` when it has none), fix_hint `docx_repair adds a content-type Default for the extension.`
 - **b** — `r:id` attribute values of the main document part, distinct, in order of first occurrence. Id absent from the part's rels → error, `part` = the document part, message `r:id {rid} is referenced in {part} but not defined in {rels part}.`, fix_hint `Add the missing relationship or remove the referencing element; not auto-repairable.`
@@ -211,21 +211,21 @@ Severity `error` blocks `docx_save` (`validation_failed`); `warning` never block
 3. Entry metadata is normalized: DOS timestamp 1980-01-01 00:00:00, no extra fields, no entry comments, deflate compression level 6.
 4. **Atomic write**: serialize to a temp file in the destination directory, then rename over the target.
 
-Deflate output may differ between zlib and fflate at the same level — byte-equivalence across implementations is asserted on **decompressed** part contents (§10), not raw archive bytes.
+Output stability is asserted on **decompressed** part contents (§10), not raw archive bytes (deflate framing is not contractual).
 
-## 10. Normalization for cross-implementation comparison
+## 10. Normalization for output comparison
 
-The conformance harness compares two output packages as follows:
+Two output packages (e.g. a fresh save versus a golden fixture) are compared as follows:
 
 1. Unzip both; the ordered lists of entry names must be equal.
 2. For each entry, compare decompressed bytes. Equal → pass.
 3. **Canonical-XML fallback** (only for `.xml`/`.rels` entries): parse both, sort each element's attributes by attribute name (byte order of the qualified name as written), drop whitespace-only text nodes between elements, then compare the canonical serializations. Equal → pass; else the case fails with a part-level diff.
 
-The fallback exists so that attribute-order or inter-tag-whitespace differences in _modified_ parts don't fail conformance; semantic differences always do.
+The fallback exists so that attribute-order or inter-tag-whitespace differences in _modified_ parts don't fail comparison; semantic differences always do.
 
-## 11. CLI contract (conformance driver)
+## 11. CLI contract
 
-Both implementations ship a line-oriented JSON CLI used by the harness:
+The engine ships a line-oriented JSON CLI (used by tooling and tests):
 
 - Read one JSON object per line from stdin: `{"tool": "docx_replace", "args": {…}}`.
 - Write exactly one JSON object per line to stdout, in request order: the tool's result object, or an error object `{"error": code, "message": …, "suggestions": […]}`.
@@ -233,18 +233,17 @@ Both implementations ship a line-oriented JSON CLI used by the harness:
 - Tools defined in [spec/tools/](tools/) but not yet implemented return `not_implemented`.
 - A request line that is not a JSON object with a string `tool`, or whose `args` lack a schema-required key, yields `invalid_args`.
 
-Entry points: Python `python -m docxengine.cli`; TypeScript `node js/dist/cli.js`.
+Entry point: `python -m docxengine.cli`.
 
 ## 12. Dependencies
 
 - **Python**: standard library only.
-- **TypeScript**: `fflate` (zip) only.
 
 Anything else (renderers, converters) is an optional adapter and never required by the algorithms above.
 
 # Phase 2 algorithms
 
-Phase 1 (§1–§12) is in force and proven (15/15 parity). This section pins Phase 2 with the same authority: where a byte is named, it is normative. All emission obeys §3 (splice, don't re-serialize; the §3 escape rules; `xml:space="preserve"` iff leading/trailing whitespace). All new ids follow the Phase-1 idiom **max existing + 1**. All dates use `DOCXENGINE_FIXED_DATE` when set (§5). New parts are appended in creation order (§9) and every `op` ends by passing the §8 validator. Shared property names (`size_pt`, `spacing_before_pt`, `spacing_after_pt`) are the canonical spec names; the tool JSON shorthands (`size`, `spacing_after`, `spacing`) map onto them verbatim (`size`→`size_pt`, points; `spacing_after`→`spacing_after_pt`; `spacing`→line multiplier, out of the closed prop set below and ignored by the style/format writers).
+Phase 1 (§1–§12) is in force and proven. This section pins Phase 2 with the same authority: where a byte is named, it is normative. All emission obeys §3 (splice, don't re-serialize; the §3 escape rules; `xml:space="preserve"` iff leading/trailing whitespace). All new ids follow the Phase-1 idiom **max existing + 1**. All dates use `DOCXENGINE_FIXED_DATE` when set (§5). New parts are appended in creation order (§9) and every `op` ends by passing the §8 validator. Shared property names (`size_pt`, `spacing_before_pt`, `spacing_after_pt`) are the canonical spec names; the tool JSON shorthands (`size`, `spacing_after`, `spacing`) map onto them verbatim (`size`→`size_pt`, points; `spacing_after`→`spacing_after_pt`; `spacing`→line multiplier, out of the closed prop set below and ignored by the style/format writers).
 
 ## 13. Anchor sequences (Phase 2 invariant)
 
@@ -328,7 +327,7 @@ If `word/numbering.xml` is absent, create it (root `<w:numbering>`), add the con
 
 **reply** appends a new `w:comment` (next id) and, in `word/commentsExtended.xml` (w15; create with content-type + rel on demand), a `<w15:commentEx w15:paraId="{child}" w15:paraIdParent="{parent}" w15:done="0"/>` (each `w:p` in comments carries a `w14:paraId`; reply parent = the thread root's paraId). **resolve** sets `w15:done="1"` on the thread root's `commentEx` (creating it if absent). **delete** removes all five places for the id (and its replies). **list** returns one entry per thread root: `{id, anchor (the body anchor of its range start), author, date, text, resolved (w15:done=1), replies:[{author,date,text}]}`. id allocation = max+1 across comments.
 
-The `w14:paraId` of a created comment's `w:p` is **derived deterministically** for cross-implementation byte parity (Word's random ids are not reproducible): the first **8 uppercase hex chars** of the SHA-256 of the UTF-8 encoding of `paraId:{w:id}:{text}` (the comment's `w:id` and its body text). Both implementations MUST use this identical derivation.
+The `w14:paraId` of a created comment's `w:p` is **derived deterministically** (Word's random ids are not reproducible): the first **8 uppercase hex chars** of the SHA-256 of the UTF-8 encoding of `paraId:{w:id}:{text}` (the comment's `w:id` and its body text). The derivation is fixed and normative.
 
 ## 19. Media (`docx_media`)
 
@@ -392,7 +391,7 @@ This is mutual. <!-- comment:Jane: confirm scope -->
 
 ### 23a. Stage-3 byte pins (convert / create / template)
 
-These resolve choices the prose above left open; `md`/`html` content is parity-compared deep-equal, so both implementations MUST follow them.
+These resolve choices the prose above left open; they are normative so `md`/`html` content is deterministic.
 
 - **md block joins** — body blocks join with a blank line (`"\n\n"`), **except** two consecutive list items, which join with a single `"\n"` (a tight list). Inline `[ins]` precedes the run text and a paragraph carrying any tracked deletion appends a trailing `[del]` (both suppressed when markers are off). Inline comment notes (` <!-- comment:{author}: {text} -->`) append after the paragraph text in `w:commentReference` order; `{text}` is the §1 normalized comment body. No trailing newline.
 - **html structure** — each non-list paragraph is one `<p>`/`<h{n}>`; consecutive list items of the same `kind` are wrapped in one `<ul>`/`<ol>` and emit `<li>…</li>`; tables emit `<table><tr><td>…`. Alignment maps `both`→`justify`; `style` packs `text-align` then `color` joined by `;`. Block lines join with `"\n"`.
@@ -409,7 +408,7 @@ Detection order: env `DOCXENGINE_SOFFICE`; then `soffice` on `PATH`; then platfo
 
 ## 26. MCP file facade (Python server only)
 
-The wire contract (`spec/tools`, the §11 CLI, the SDK `call()` surface) addresses documents by an in-memory `doc_id` handle. The MCP server is the deployment where a document **is a file**, so it exposes a path-based projection of that contract. The facade lives entirely in the Python MCP layer (`_mcp_facade.py`); the core, the spec schemas, the CLI, and the SDKs are unchanged and keep `doc_id` (the right storage-agnostic surface for embedding in software — browser JS has no filesystem).
+The wire contract (`spec/tools`, the §11 CLI, the in-process `call()` surface) addresses documents by an in-memory `doc_id` handle. The MCP server is the deployment where a document **is a file**, so it exposes a path-based projection of that contract. The facade lives entirely in the MCP layer (`_mcp_facade.py`); the core, the spec schemas, and the CLI are unchanged and keep `doc_id` (the storage-agnostic internal surface).
 
 **Tool surface.** `tools/list` is the spec schemas transformed: every `doc_id` property (and its `required` slot) becomes `path`; `docx_save` is dropped (saving is automatic); `docx_create` and `docx_template_fill` gain a required output `path`; `docx_open` drops its base64 `bytes` input and becomes a read-only inspect; the file-producing output paths of `docx_convert` and `docx_media` are renamed `output_path` (so `path` always means the source document). 24 spec tools → 23 facade tools.
 
@@ -417,11 +416,11 @@ The wire contract (`spec/tools`, the §11 CLI, the SDK `call()` surface) address
 
 **Path rules.** A relative `path` resolves against the server's working directory, or against `DOCXENGINE_ROOT` when that environment variable is set; `~` expands and symlinks collapse. With `DOCXENGINE_ROOT` set, a path resolving outside the root is refused with `path_denied` (a filesystem sandbox); unset, any path is allowed. A missing/unreadable source file is `open_failed`. `doc_not_found` is structurally unreachable — handles never leave the process.
 
-**Markdown result projection.** A `tools/call` result is normally `json.dumps(payload)` in one `{type:"text"}` content block. But for **text-first tools** — `docx_read`, `docx_convert` (md/html target), `docx_render_preview` (structural fallback), `docx_outline`, `docx_search` — the payload is fundamentally a text document, so the server emits **markdown directly** instead of a JSON-escaped envelope (the same principle the §25 resource endpoints use). The rule (`_md_output.project_markdown`): `docx_read`/`docx_convert` emit their `content` verbatim; `docx_render_preview` emits the `structural` projection (renderer path with image links stays JSON); `docx_outline` renders the §2a heading-tree + table list; `docx_search` renders `- [anchor] "snippet"  (under: context)` bullets. Metadata the body can't carry (the read `continuation` cursor, the convert `note`, the structural `page_count`, the echoed `path`) is appended as a single trailing HTML comment: `<!-- docxengine: {parts joined by " | "} -->`. Every **error** result, the renderer/pdf/png paths, and every **structured/op tool** stay JSON. This is an MCP-transport presentation rule only — the structured result contract (the §11 CLI, the SDK `call()` surface, conformance) is unchanged; the JS package has no MCP server and is unaffected.
+**Markdown result projection.** A `tools/call` result is normally `json.dumps(payload)` in one `{type:"text"}` content block. But for **text-first tools** — `docx_read`, `docx_convert` (md/html target), `docx_render_preview` (structural fallback), `docx_outline`, `docx_search` — the payload is fundamentally a text document, so the server emits **markdown directly** instead of a JSON-escaped envelope (the same principle the §25 resource endpoints use). The rule (`_md_output.project_markdown`): `docx_read`/`docx_convert` emit their `content` verbatim; `docx_render_preview` emits the `structural` projection (renderer path with image links stays JSON); `docx_outline` renders the §2a heading-tree + table list; `docx_search` renders `- [anchor] "snippet"  (under: context)` bullets. Metadata the body can't carry (the read `continuation` cursor, the convert `note`, the structural `page_count`, the echoed `path`) is appended as a single trailing HTML comment: `<!-- docxengine: {parts joined by " | "} -->`. Every **error** result, the renderer/pdf/png paths, and every **structured/op tool** stay JSON. This is an MCP-transport presentation rule only — the structured result contract (the §11 CLI and the in-process `call()` surface) is unchanged.
 
 ## 27. Resource & content-safety limits (untrusted input)
 
-Both engines parse untrusted documents driven by untrusted (LLM-generated) tool calls, so the OPC layer bounds a hostile package's cost **before** it can be paid, and refuses hostile XML. The caps are read from the environment on each open so a deployment can tune them; the defaults are generous for real documents and tight against abuse. Both implementations enforce the same checks for parity.
+The engine parses untrusted documents driven by untrusted (LLM-generated) tool calls, so the OPC layer bounds a hostile package's cost **before** it can be paid, and refuses hostile XML. The caps are read from the environment on each open so a deployment can tune them; the defaults are generous for real documents and tight against abuse.
 
 **Decompression bounds (`doc_too_large`).** On open, the engine reads each entry's _declared_ uncompressed size, compressed size, and the entry count from the zip central directory — without decompressing — and refuses the package if any limit is exceeded:
 

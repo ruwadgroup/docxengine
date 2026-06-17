@@ -1,9 +1,0 @@
-{
-  "doc": "split-runs",
-  "tool": "docx_save",
-  "args": {},
-  "expect": {
-    "result": { "ok": true, "validated": true },
-    "invariants": ["roundtrip", "no_word_repair"]
-  }
-}

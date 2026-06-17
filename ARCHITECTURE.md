@@ -5,8 +5,7 @@ This document is the long-form design reference: the layering, the document repr
 ## Table of contents
 
 - [Design constraints](#design-constraints)
-- [Layering — one core, three faces](#layering--one-core-three-faces)
-- [Core-sharing strategy](#core-sharing-strategy)
+- [Layering — one core, two faces](#layering--one-core-two-faces)
 - [Stable addressing: content-hash anchors](#stable-addressing-content-hash-anchors)
 - [The document representation agents see](#the-document-representation-agents-see)
 - [The tool surface (ACI)](#the-tool-surface-aci)
@@ -27,15 +26,14 @@ Four facts shape everything below:
 3. **`w14:paraId` cannot be the durable address.** It is a Word-2010+ extension absent from docs written by other tools, generated randomly by Word, and _not spec-guaranteed stable across saves_ (documented regenerations in Open-XML-SDK #925). See [docs/core/anchors.md](docs/core/anchors.md).
 4. **Agents need a designed interface, not a wrapped API.** SWE-agent (NeurIPS 2024) showed interface design — simple, consolidated, guarded actions with feedback — outperforms raw access. Anthropic's tool guidance adds token-economy rules: high-leverage namespaced tools, human-readable context, ~25k-token response cap, `concise`/`detailed` formats, just-in-time detail loading.
 
-## Layering — one core, three faces
+## Layering — one core, two faces
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │  Integration faces (thin)                                      │
 │  1. MCP server (stdio + streamable-HTTP)                       │
 │  2. Python package  (docxengine)   — JSON-in/JSON-out + native │
-│  3. JS/TS package   (@docxengine)  — JSON-in/JSON-out + native │
-│     + OpenAI function-calling adapter (thin)                   │
+│     + OpenAI/Anthropic function-calling adapters (thin)        │
 ├──────────────────────────────────────────────────────────────┤
 │  Core engine (deterministic, no LLM)                           │
 │   • OPC/ZIP package model      • Style cascade resolver        │
@@ -49,17 +47,7 @@ Four facts shape everything below:
 
 The faces are deliberately thin: they translate transport/registration formats and nothing else. All behavior lives in the core, which is deterministic — the same tool call against the same document bytes produces the same output bytes, with no model in the loop.
 
-## Core-sharing strategy
-
-Three options were evaluated for sharing the core across Python and JS:
-
-| Option                                                                              | Pros                                                                | Cons                                                                                                        | Verdict           |
-| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------- |
-| Single Rust core → PyO3 + wasm-bindgen                                              | One source of truth; max fidelity; fast                             | Heavy build/CI; WASM↔JS marshalling of large buffers; harder OSS contribution; binary distribution friction | Defer to v2       |
-| **Parallel Python + TS implementations, shared JSON contract + shared test corpus** | Idiomatic per ecosystem; trivial install; easy contribution; no FFI | Two codebases; drift risk (mitigated by conformance tests)                                                  | **Chosen for v1** |
-| One language + bindings the other way                                               | Less duplication                                                    | Forces a runtime dependency users may not want (e.g., Node in a Python shop)                                | Rejected          |
-
-The decisive factor is **distribution and adoptability**: a pure-`pip` and pure-`npm` install with zero native/WASM toolchain wins on friction for anyone integrating into private systems. The two implementations are kept honest by a **shared conformance corpus** — the same input docx plus the same tool call must produce byte-equivalent-after-normalization output in both languages ([conformance/](conformance/)). The threshold to revisit Rust/WASM: when drift caught by the conformance suite costs more maintenance than an FFI/WASM build would, or when edit throughput becomes a bottleneck.
+The Python engine is pure-stdlib with zero runtime dependencies (`mcp` is an optional extra), so a plain `pip install docxengine` works with no native or WASM toolchain — the decisive factor for adoptability in locked-down private systems. The engine is kept honest by a **conformance corpus** — the same input docx plus the same tool call must produce byte-equivalent-after-normalization output across runs ([conformance/](conformance/)).
 
 ## Stable addressing: content-hash anchors
 
@@ -192,8 +180,7 @@ Details: [docs/mcp/server.md](docs/mcp/server.md) and [docs/mcp/state-and-scalin
 ## Framework-agnostic packaging
 
 - **Contract**: every tool is a pure function `fn(args_json) → result_json` with a published JSON Schema. The same schema feeds MCP `tools/list`, OpenAI function-calling `tools`, and Anthropic tool definitions. [`spec/`](spec/) is the source of truth.
-- **Python** (`docxengine`): native objects (`Document`, `Paragraph`) for power users plus a `call(tool_name, args_dict) → dict` dispatcher. Ships `docxengine.openai_tools()` (the function-calling schema list) as a thin adapter.
-- **JS/TS** (`@docxengine/core`): mirrors with `call()` and `openaiTools()`. Works in Node and (create/read paths) the browser.
+- **Python** (`docxengine`): native objects (`Document`, `Paragraph`) for power users plus a `call(tool_name, args_dict) → dict` dispatcher. Ships `docxengine.openai_tools()` and `docxengine.anthropic_tools()` (the function-calling schema lists) as thin adapters.
 - **Adapters are ≤ a few lines each** and never contain business logic — they only translate schema/registration formats. Any other framework consumes the published schemas directly; a custom orchestrator just calls `call(name, args)`.
 
 ## Validation and the repair gate
@@ -221,6 +208,5 @@ These hold across all phases and all faces; PRs that break one are rejected (see
 2. **No silent repair**: a document that validates clean before save must open in Word without a "repair" prompt.
 3. **Hash-guarded edits**: no edit lands on a paragraph whose anchor hash fails validation.
 4. **Token economy**: no tool response exceeds ~25k tokens; raw OOXML is never returned by default.
-5. **Determinism**: the core contains no LLM and no nondeterministic output for identical inputs.
-6. **Parity**: Python and TS produce byte-equivalent-after-normalization output for every conformance case.
-7. **Thin faces**: MCP/adapters translate formats only; behavior lives in the core.
+5. **Determinism**: the core contains no LLM and no nondeterministic output for identical inputs; the same tool call against the same bytes produces byte-equivalent-after-normalization output for every conformance case.
+6. **Thin faces**: MCP/adapters translate formats only; behavior lives in the core.

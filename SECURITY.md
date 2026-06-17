@@ -21,4 +21,4 @@ DocxEngine parses untrusted documents and is driven by untrusted (LLM-generated)
 
 ## Scope
 
-In scope: the core engine, MCP server, Python/JS packages, and conformance harness in this repository. Out of scope: vulnerabilities in Word, LibreOffice, or downstream agent frameworks themselves (report upstream — but tell us if DocxEngine's defaults make exploitation easier).
+In scope: the core engine, the MCP server, and the Python package in this repository. Out of scope: vulnerabilities in Word, LibreOffice, or downstream agent frameworks themselves (report upstream — but tell us if DocxEngine's defaults make exploitation easier).

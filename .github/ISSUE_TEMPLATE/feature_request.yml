@@ -27,7 +27,6 @@ body:
         - tracked changes / comments
         - mcp server
         - python package
-        - js package
         - conformance / benchmarks
         - docs
         - other

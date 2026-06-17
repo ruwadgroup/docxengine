@@ -6,13 +6,12 @@ Open a contract with tracked changes from two reviewers, accept only Jane Doe's,
 
 ```bash
 python make_input.py                 # builds contract.docx (synthetic, two authors' redlines)
-python run.py                        # Python SDK
-node run.mjs                         # JS SDK (after: pnpm --dir ../../js build)
+python run.py
 ```
 
 ## The flow (as raw tool calls)
 
-See [calls.json](calls.json) — the same five calls work over MCP, the Python `call()`, and the JS `call()`:
+See [calls.json](calls.json) — the same five calls work over MCP and the CLI:
 
 1. `docx_open` → doc handle + `has_tracked_changes: true`
 2. `docx_revision {op: "list"}` → inventory by author

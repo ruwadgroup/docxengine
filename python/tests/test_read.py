@@ -577,7 +577,7 @@ class TestDocxSearch:
 
 
 # ---------------------------------------------------------------------------
-# Conformance corpus parity (pins the cases in conformance/cases/)
+# Conformance corpus checks (against fixtures in conformance/corpus/)
 # ---------------------------------------------------------------------------
 
 CORPUS = Path(__file__).resolve().parents[2] / "conformance" / "corpus"

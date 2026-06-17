@@ -1,16 +1,6 @@
 # Installation
 
-> **Pre-alpha**: the Phase 1 MVP is implemented, but packages are not yet published to PyPI/npm — install from source. The registry commands below activate at first release.
-
-## From source (today)
-
-```bash
-git clone https://github.com/ruwadgroup/docxengine.git && cd docxengine
-pip install -e python          # Python SDK + docxengine-mcp
-pnpm install && pnpm --dir js build   # JS/TS SDK → js/dist
-```
-
-## Python (at first release)
+## Python
 
 ```bash
 pip install docxengine
@@ -18,24 +8,27 @@ pip install docxengine
 
 Requires Python ≥3.12. No native dependencies — pure pip install.
 
-## JS/TS (at first release)
+## From source
 
 ```bash
-npm install @docxengine/core
-# or
-pnpm add @docxengine/core
+git clone https://github.com/ruwadgroup/docxengine.git && cd docxengine
+pip install -e python          # docxengine + the docxengine-mcp server
 ```
-
-Requires Node ≥22. Create/read paths also work in the browser.
 
 ## MCP server
 
-The MCP server ships with the Python package as a console script:
+The MCP server ships with the Python package as a console script. Run it without installing anything via `uvx`:
+
+```bash
+uvx docxengine-mcp        # stdio transport (default)
+```
+
+Or install the package and run the console script:
 
 ```bash
 pip install docxengine
 docxengine-mcp            # stdio transport (default)
-docxengine-mcp --http     # Streamable HTTP (Phase 2)
+docxengine-mcp --http     # Streamable HTTP
 ```
 
 ### Claude Desktop / Claude Code
@@ -44,7 +37,8 @@ docxengine-mcp --http     # Streamable HTTP (Phase 2)
 {
   "mcpServers": {
     "docx": {
-      "command": "docxengine-mcp"
+      "command": "uvx",
+      "args": ["docxengine-mcp"]
     }
   }
 }

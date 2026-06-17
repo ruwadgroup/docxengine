@@ -18,7 +18,7 @@ keywords:
 abstract: >-
   A deterministic OOXML editing core that preserves tracked changes, comments,
   and footnotes by patching XML directly, exposed to AI agents through an MCP
-  server and framework-agnostic Python/JavaScript packages. Documents are
+  server (with a Python package on PyPI). Documents are
   addressed via content-hash-anchored paragraph IDs and projected into a
   token-efficient Markdown-like view, with always-on OOXML validation and an
   optional render-based verification loop.

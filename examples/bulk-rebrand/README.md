@@ -7,7 +7,6 @@ Replace a company name document-wide as a tracked change — the idempotent `all
 ```bash
 python make_input.py     # builds report.docx (the old name appears in several paragraphs, one split across runs)
 python run.py
-node run.mjs             # after: pnpm --dir ../../js build
 ```
 
 ## The flow

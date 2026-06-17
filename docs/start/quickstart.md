@@ -40,25 +40,7 @@ call("docx_replace", {
 call("docx_save", {"doc_id": doc["doc_id"], "path": "contract-redlined.docx"})
 ```
 
-Power users get native objects too (`from docxengine import Document`), but `call()` is the contract surface that matches MCP and the JS package exactly.
-
-## JS/TS
-
-```ts
-import { call } from "@docxengine/core";
-
-const doc = await call("docx_open", { path: "contract.docx" });
-const hits = await call("docx_search", { doc_id: doc.doc_id, query: "Confidential Information" });
-await call("docx_replace", {
-  doc_id: doc.doc_id,
-  anchor: hits[0].anchor,
-  old: "five (5) years",
-  new: "three (3) years",
-  track_changes: true,
-  author: "Claude",
-});
-await call("docx_save", { doc_id: doc.doc_id, path: "contract-redlined.docx" });
-```
+Power users get native objects too (`from docxengine import Document`), but `call()` is the contract surface that matches MCP exactly.
 
 ## Reading big documents cheaply
 
