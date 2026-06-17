@@ -65,10 +65,10 @@ describe("Document native API", () => {
   it("opens from bytes and reports paragraphs with styleId", async () => {
     const doc = await Document.open(buildDocx());
     const paras = doc.paragraphs();
-    expect(paras[0].anchor).toBe("P1#515a");
-    expect(paras[0].text).toBe("Master Services Agreement");
-    expect(paras[0].style).toBe("Heading1"); // raw styleId, matching Python
-    expect(paras[1].style).toBeNull();
+    expect(paras[0]?.anchor).toBe("P1#515a");
+    expect(paras[0]?.text).toBe("Master Services Agreement");
+    expect(paras[0]?.style).toBe("Heading1"); // raw styleId, matching Python
+    expect(paras[1]?.style).toBeNull();
   });
 
   it("find returns a paragraph view; search returns match dicts", async () => {
@@ -77,7 +77,7 @@ describe("Document native API", () => {
     expect(para).toBeInstanceOf(DocumentParagraph);
     expect(doc.find("nonexistent")).toBeNull();
     const hits = (await doc.search("five (5)")) as { matches: { anchor: string }[] };
-    expect(hits.matches[0].anchor).toBe(para?.anchor);
+    expect(hits.matches[0]?.anchor).toBe(para?.anchor);
   });
 
   it("creates and edits, round-tripping through the in-memory handle", async () => {
@@ -90,7 +90,7 @@ describe("Document native API", () => {
 
   it("covers the edit surface (insert, revision, comment, table)", async () => {
     const doc = await Document.open(buildDocx());
-    const anchor = doc.paragraphs()[0].anchor;
+    const anchor = doc.paragraphs()[0]!.anchor;
     const inserted = (await doc.insert("New intro.", { after: anchor })) as {
       new_anchors: string[];
     };
@@ -115,7 +115,7 @@ describe("Document native API", () => {
     expect(para).not.toBeNull();
     await para?.replace("five (5) years", "two (2) years");
     expect(doc.find("two (2) years")).not.toBeNull();
-    const fresh = doc.paragraphs()[0];
+    const fresh = doc.paragraphs()[0]!;
     const out = (await fresh.insertAfter("After heading.")) as { new_anchors: string[] };
     expect(out.new_anchors.length).toBe(1);
   });

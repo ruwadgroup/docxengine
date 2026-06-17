@@ -24,7 +24,7 @@
   ],
   "scripts": {
     "sync-spec": "node scripts/sync-spec.mjs",
-    "build": "node scripts/sync-spec.mjs && tsc -p tsconfig.json",
+    "build": "node scripts/sync-spec.mjs && tsc -p tsconfig.build.json",
     "test": "vitest run",
     "lint": "tsc --noEmit",
     "prepublishOnly": "pnpm sync-spec && pnpm build"
