@@ -10,16 +10,49 @@ returns fresh anchors for everything it touched. Failures raise
 
 from __future__ import annotations
 
-from . import _edits, _xml
+from . import _create, _edits, _xml
 from ._anchors import build_anchor_index
 from ._errors import ToolError
 from ._session import Session
 
 _REVISION_OPS = frozenset({"list", "accept", "reject", "accept_all", "reject_all"})
 
+#: The §22 horizontal-rule paragraph (mirrors ``_create._emit_rule``).
+_RULE_PARAGRAPH = (
+    "<w:p><w:pPr><w:pBdr>"
+    '<w:bottom w:val="single" w:sz="6" w:space="1" w:color="auto"/>'
+    "</w:pBdr></w:pPr></w:p>"
+)
+
 
 def _plural(n: int, noun: str) -> str:
     return f"{n} {noun}" if n == 1 else f"{n} {noun}s"
+
+
+def _parse_insert_blocks(content: str) -> list[_create.LineBlock]:
+    """§6a insert markdown: classify each non-blank line (shares the §22 grammar).
+
+    Headings, quotes, rules, task lists, ``-``/``*``/``1.`` list items, else plain;
+    multi-line tables are not recognized here. Blank/whitespace-only lines emit nothing.
+    """
+    blocks: list[_create.LineBlock] = []
+    for raw_line in content.split("\n"):
+        line = raw_line.removesuffix("\r")
+        if not line.strip(_xml.WHITESPACE):
+            continue
+        blocks.append(_create.classify_line(line))
+    return blocks
+
+
+def _block_style(block: _create.LineBlock) -> str | None:
+    """The pStyle a §6a insert block carries (``None`` = no pStyle; ``numPr`` is Phase 2)."""
+    if block.kind == "heading":
+        return f"Heading{block.level}"
+    if block.kind == "quote":
+        return "Quote"
+    if block.kind in ("task", "ul", "ol"):
+        return "ListParagraph"
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -182,34 +215,39 @@ def docx_insert(
         raise _edits.anchor_invalid_error("Provide exactly one of after or before.")
     entries = _edits.paragraph_entries(package)
     entry = _edits.require_paragraph(entries, after if after is not None else before or "")
-    paragraphs = _edits.parse_insert_content(content)
+    blocks = _parse_insert_blocks(content)
     style_id = _edits.resolve_style_id(package, style) if style is not None else None
-    if not paragraphs:
+    if not blocks:
         return {"new_anchors": []}
     data = package.part(part)
     author_name = _edits.resolve_author(author)
     date = _edits.revision_date()
     rev_id = _edits.next_revision_id(data) if track_changes else 0
     pieces: list[str] = []
-    for text, line_style in paragraphs:
-        effective_style = style_id if style_id is not None else line_style
+    for block in blocks:
+        # A horizontal rule has no runs; a style override makes it a styled empty paragraph.
+        if block.kind == "rule" and style_id is None:
+            pieces.append(_RULE_PARAGRAPH)
+            continue
+        effective_style = style_id if style_id is not None else _block_style(block)
         ppr = (
             f'<w:pPr><w:pStyle w:val="{_xml.escape_attr(effective_style)}"/></w:pPr>'
             if effective_style is not None
             else ""
         )
-        run = f"<w:r>{_xml.emit_text_element(text)}</w:r>" if text else ""
-        if track_changes and run:
-            run = _edits.revision_open("ins", rev_id, author_name, date) + run + "</w:ins>"
+        text = "" if block.kind == "rule" else block.text
+        runs = _create.emit_inline(text) if text else ""
+        if track_changes and runs:
+            runs = _edits.revision_open("ins", rev_id, author_name, date) + runs + "</w:ins>"
             rev_id += 1
-        pieces.append(f"<w:p>{ppr}{run}</w:p>")
+        pieces.append(f"<w:p>{ppr}{runs}</w:p>")
     position = entry.span.end if after is not None else entry.span.start
     new_data = _xml.splice(data, [(position, position, "".join(pieces).encode("utf-8"))])
     package.set_part(part, new_data)
     doc.mark_dirty()
     fresh = _edits.paragraph_entries(package)
     base = entry.ordinal + 1 if after is not None else entry.ordinal
-    return {"new_anchors": [fresh[base - 1 + i].anchor for i in range(len(paragraphs))]}
+    return {"new_anchors": [fresh[base - 1 + i].anchor for i in range(len(blocks))]}
 
 
 # ---------------------------------------------------------------------------

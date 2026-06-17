@@ -428,31 +428,6 @@ def rebuild_paragraph(
     return _xml.splice(data, [(p.inner_start, p.inner_end, inner)])
 
 
-# ---------------------------------------------------------------------------
-# docx_insert content parsing (§6a)
-# ---------------------------------------------------------------------------
-
-_MARKDOWN_HEADING_RE = re.compile(r"^(#{1,9}) ")
-
-
-def parse_insert_content(content: str) -> list[tuple[str, str | None]]:
-    """§6a minimal markdown: ``(text, pStyle)`` per line; blank lines emit nothing."""
-    out: list[tuple[str, str | None]] = []
-    for raw_line in content.split("\n"):
-        line = raw_line.removesuffix("\r")
-        if not line.strip(_xml.WHITESPACE):
-            continue
-        m = _MARKDOWN_HEADING_RE.match(line)
-        if m:
-            level = len(m.group(1))
-            out.append((line[level + 1 :], f"Heading{level}"))
-        elif line.startswith(("- ", "* ")):
-            out.append((line[2:], "ListParagraph"))  # numPr wiring is Phase 2
-        else:
-            out.append((line, None))
-    return out
-
-
 def resolve_style_id(package: Package, style: str) -> str:
     """§6a: the styleId verbatim if defined, else with whitespace removed, else error."""
     ids: set[str] = set()

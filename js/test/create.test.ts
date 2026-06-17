@@ -64,6 +64,18 @@ describe("docx_create block mapping", () => {
     expect(proj).toContain("List:ol L1] First");
   });
 
+  it("maps GitHub task items to a glyph-prefixed ListParagraph (no bullet)", () => {
+    const { session, res } = create("- [ ] todo\n- [x] done\n* [X] also done\n");
+    const xml = docXml(session, res.doc_id);
+    expect(xml).toContain(
+      '<w:p><w:pPr><w:pStyle w:val="ListParagraph"/></w:pPr><w:r><w:t>☐ todo</w:t></w:r></w:p>',
+    );
+    expect(xml).toContain("<w:t>☒ done</w:t>");
+    expect(xml).toContain("<w:t>☒ also done</w:t>");
+    // The checkbox replaces the bullet — task items allocate no numbering.
+    expect(session.get(res.doc_id).pkg.has("word/numbering.xml")).toBe(false);
+  });
+
   it("maps a GitHub pipe table with a separator to a header table (§14)", () => {
     const { session, res } = create("| Term | Value |\n| --- | --- |\n| Fee | $100 |\n");
     const xml = docXml(session, res.doc_id);
