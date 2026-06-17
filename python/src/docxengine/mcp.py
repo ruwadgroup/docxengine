@@ -35,7 +35,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import IO, Any
 from urllib.parse import unquote
 
-from . import __version__, _projector
+from . import __version__, _md_output, _projector
 from ._errors import ToolError
 from ._mcp_facade import FacadeContext, call_path_tool, facade_tool_schemas
 from ._paths import resolve_path, server_root
@@ -99,10 +99,15 @@ def _tools_call(req_id: object, params: Any, ctx: FacadeContext) -> dict[str, An
     except ToolError as exc:
         payload = exc.to_payload()
         is_error = True
+    # Text-first tools emit markdown directly (§26); everything else, and every
+    # error, is JSON. project_markdown returns None to request the JSON fallback.
+    text = None if is_error else _md_output.project_markdown(params["name"], payload)
+    if text is None:
+        text = json.dumps(payload, ensure_ascii=False)
     return _result(
         req_id,
         {
-            "content": [{"type": "text", "text": json.dumps(payload, ensure_ascii=False)}],
+            "content": [{"type": "text", "text": text}],
             "isError": is_error,
         },
     )

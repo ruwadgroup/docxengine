@@ -871,6 +871,8 @@ export const TOOL_SPECS: ToolSpec[] = [
       properties: {
         pages: {
           type: "array",
+          description:
+            "Renderer path only: one entry per rendered page with its image resource link. Omitted in the structural fallback (use page_count there).",
           items: {
             type: "object",
             properties: {
@@ -880,11 +882,16 @@ export const TOOL_SPECS: ToolSpec[] = [
               image: {
                 type: "string",
                 description:
-                  "Resource link like 'docx://d1/preview/page-1.png'. Present only when a renderer (LibreOffice) produced an image; omitted in the structural fallback.",
+                  "Resource link like 'docx://d1/preview/page-1.png'. Present only when a renderer (LibreOffice) produced an image.",
               },
             },
             required: ["page"],
           },
+        },
+        page_count: {
+          type: "integer",
+          description:
+            "Structural fallback only (renderer 'structural'): the estimated page count (ceil(total_chars / 1800)). Replaces the per-page array when no renderer ran.",
         },
         renderer: {
           type: "string",
@@ -892,13 +899,13 @@ export const TOOL_SPECS: ToolSpec[] = [
         structural: {
           type: "string",
           description:
-            "Structural fallback only (renderer 'structural'): the §2 projection of the resolved document with an estimated page count. Present when no render adapter is installed.",
+            "Structural fallback only (renderer 'structural'): the §2 projection of the resolved document. Present when no render adapter is installed.",
         },
         note: {
           type: "string",
         },
       },
-      required: ["pages", "renderer"],
+      required: ["renderer"],
     },
     errors: ["doc_not_found", "render_unavailable", "render_failed"],
   },

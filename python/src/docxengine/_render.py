@@ -261,10 +261,9 @@ def render_preview(
     soffice = detect_soffice()
     if soffice is None:
         fallback = structural_preview(doc)
-        page_set = _page_numbers(pages, fallback.estimated_pages)
         plural = "" if fallback.estimated_pages == 1 else "s"
         return {
-            "pages": [{"page": page} for page in page_set],
+            "page_count": fallback.estimated_pages,
             "renderer": "structural",
             "structural": fallback.structural,
             "note": (
