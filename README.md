@@ -17,8 +17,6 @@ It runs as an [MCP](https://modelcontextprotocol.io) server, so it plugs straigh
 
 </div>
 
----
-
 ## Why agents need this
 
 Ask an agent to "accept Jane's edits and update the effective date" and most tooling falls apart.
