@@ -38,6 +38,7 @@ def _no_soffice(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:  # noqa: ANN
     empty.mkdir()
     monkeypatch.setenv("PATH", str(empty))
     monkeypatch.setattr(_render, "PLATFORM_DEFAULTS", ())
+    monkeypatch.setenv("DOCXENGINE_AUTO_FETCH_SOFFICE", "0")
 
 
 def _create(session: Session) -> str:

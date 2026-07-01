@@ -111,8 +111,8 @@
     {
       "code": "render_unavailable",
       "category": "render",
-      "message_template": "No render adapter installed.",
-      "recovery": "Fall back to docx_convert {to: \"md\"}; install LibreOffice for visual checks."
+      "message_template": "No render adapter available.",
+      "recovery": "Rendering auto-fetches LibreOffice by default; this means it is disabled (DOCXENGINE_AUTO_FETCH_SOFFICE), unsupported on this platform, or the download failed. Set DOCXENGINE_SOFFICE to an existing soffice, or fall back to docx_convert {to: \"md\"}."
     },
     {
       "code": "render_failed",

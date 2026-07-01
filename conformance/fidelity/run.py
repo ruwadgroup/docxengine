@@ -28,6 +28,7 @@ passes — visual fidelity is then the documented manual protocol.
 from __future__ import annotations
 
 import json
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -40,7 +41,12 @@ CORPUS_DIR = CONFORMANCE_DIR / "corpus"
 MANIFEST = HARNESS / "manifest.json"
 
 sys.path.insert(0, str(CONFORMANCE_DIR / "harness"))
-sys.path.insert(0, str(REPO_DIR / "python" / "src"))
+sys.path.insert(0, str(REPO_DIR / "src"))
+
+# This is a deterministic regression harness: never auto-download LibreOffice.
+# Visual rendering runs only when a real soffice is already present, unless the
+# maintainer opts in by exporting DOCXENGINE_AUTO_FETCH_SOFFICE=1 themselves.
+os.environ.setdefault("DOCXENGINE_AUTO_FETCH_SOFFICE", "0")
 
 import make_fixtures  # noqa: E402
 

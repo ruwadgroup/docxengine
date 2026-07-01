@@ -39,7 +39,7 @@
       "renderer": { "type": "string" },
       "structural": {
         "type": "string",
-        "description": "Structural fallback only (renderer 'structural'): the §2 projection of the resolved document. Present when no render adapter is installed."
+        "description": "Structural fallback only (renderer 'structural'): the §2 projection of the resolved document. Present when no render adapter is available (auto-fetch off, unsupported, or failed)."
       },
       "note": { "type": "string" }
     },

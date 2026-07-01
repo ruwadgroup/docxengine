@@ -1,17 +1,18 @@
 """Render adapter (``docx_convert`` pdf/png, ``docx_render_preview``) — algorithms.md §24.
 
-Detection order: env ``DOCXENGINE_SOFFICE``; then ``soffice`` on ``PATH``; then the
-platform defaults (``/Applications/LibreOffice.app/Contents/MacOS/soffice``,
-``/usr/bin/soffice``). When a binary is found, conversion runs
+Resolution order for the LibreOffice ``soffice`` binary: env ``DOCXENGINE_SOFFICE``;
+then ``soffice`` on ``PATH``; then the platform defaults
+(``/Applications/LibreOffice.app/Contents/MacOS/soffice``, ``/usr/bin/soffice``);
+then a **cached auto-fetched** build; then, when nothing is found, an official
+LibreOffice build is downloaded and verified on demand (see :mod:`._soffice`) so
+rendering needs no manual install. When a binary is resolved, conversion runs
 ``soffice --headless --convert-to {fmt} --outdir {DIR} {FILE}`` with a per-call temp
 profile (``-env:UserInstallation=file://{tmp}``) and ``renderer = "libreoffice {ver}"``.
-When none is found, the **structural fallback** returns the §2 projection plus an
-estimated page count (``ceil(total_chars / 1800)``) and ``renderer = "structural"``;
-preview never errors, but ``docx_convert`` to pdf/png with no adapter is
-``render_unavailable``.
 
-The TypeScript twin (``render.ts``) is the cross-language reference; pdf/png byte
-parity is **not** required (renderer output is non-deterministic).
+When no binary is available (auto-fetch disabled or unsupported), the **structural
+fallback** returns the §2 projection plus an estimated page count
+(``ceil(total_chars / 1800)``) and ``renderer = "structural"``; preview never
+errors, but ``docx_convert`` to pdf/png raises ``render_unavailable``.
 """
 
 from __future__ import annotations
@@ -24,7 +25,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 
-from . import _projector
+from . import _projector, _soffice
 from ._errors import ToolError
 from ._session import OpenDocument, Session
 
@@ -60,6 +61,31 @@ def detect_soffice() -> str | None:
         if _is_executable(candidate):
             return candidate
     return None
+
+
+def ensure_soffice() -> str | None:
+    """Resolve ``soffice``: detect a local install, else auto-fetch one (§24).
+
+    Returns a usable path, or ``None`` when nothing is installed and auto-fetch is
+    disabled, unsupported, or failed (:func:`_soffice.last_error` holds the reason).
+    """
+    found = detect_soffice()
+    if found is not None:
+        return found
+    return _soffice.provision_if_enabled()
+
+
+def _unavailable_reason() -> str:
+    """A one-line explanation of why no renderer is available, for §24 messages."""
+    if not _soffice.auto_fetch_enabled():
+        return (
+            "No render adapter: LibreOffice (soffice) was not detected; install it, "
+            "set DOCXENGINE_SOFFICE, or enable auto-fetch (DOCXENGINE_AUTO_FETCH_SOFFICE)."
+        )
+    err = _soffice.last_error()
+    if err:
+        return f"No render adapter: auto-fetching LibreOffice failed ({err})."
+    return "No render adapter: LibreOffice (soffice) was not detected."
 
 
 def _renderer_label(soffice: str) -> str:
@@ -211,11 +237,11 @@ def _render_png(doc: OpenDocument, soffice: str) -> ConversionOutcome:
 
 def render_to_file(doc: OpenDocument, fmt: str, dest: str) -> dict[str, object]:
     """Convert to pdf/png via the adapter; no adapter → ``render_unavailable`` (§24)."""
-    soffice = detect_soffice()
+    soffice = ensure_soffice()
     if soffice is None:
         raise ToolError(
             "render_unavailable",
-            "No render adapter: LibreOffice (soffice) was not detected.",
+            _unavailable_reason(),
             [
                 "Install LibreOffice or set DOCXENGINE_SOFFICE; md/html convert without it.",
                 "Use docx_render_preview for the structural fallback.",
@@ -258,7 +284,7 @@ def render_preview(
     Preview never errors when no renderer is installed — it returns the structural
     projection plus estimated page links.
     """
-    soffice = detect_soffice()
+    soffice = ensure_soffice()
     if soffice is None:
         fallback = structural_preview(doc)
         plural = "" if fallback.estimated_pages == 1 else "s"
@@ -267,8 +293,7 @@ def render_preview(
             "renderer": "structural",
             "structural": fallback.structural,
             "note": (
-                "No render adapter (LibreOffice/soffice) detected — install LibreOffice or set "
-                "DOCXENGINE_SOFFICE for rendered page images. Showing the structural projection "
+                f"{_unavailable_reason()} Showing the structural projection "
                 f"(estimated {fallback.estimated_pages} page{plural}); no image links are returned."
             ),
         }

@@ -2,14 +2,28 @@
 
 Agents lack the visual understanding to operate GUI applications — and some document truth (page numbers, TOC entries, line breaks) only exists at render time. The render adapter closes the loop: it turns the document into PDF/PNG so an agent can _check its own work_.
 
-## Design: optional and pluggable
+## Design: zero-install by default, pluggable, never a hard dependency
 
-Rendering is **never a hard dependency** of the core. The adapter interface has two implementations:
+Rendering works out of the box with **no manual LibreOffice install**. The adapter has two implementations:
 
-1. **LibreOffice headless** (default when detected) — `soffice --headless --convert-to pdf` for `docx_convert` and page images for `docx_render_preview`.
-2. **Structural preview** (always available) — resolved Markdown projection plus a computed layout estimate, used when no renderer is installed. Keeps the core fully functional in locked-down environments.
+1. **LibreOffice headless** (default) - `soffice --headless --convert-to pdf` for `docx_convert` and page images for `docx_render_preview`. If no `soffice` is already installed, docxengine downloads an official LibreOffice build on first render, verifies it, caches it per-user, and uses it (see below).
+2. **Structural preview** (always available) - resolved Markdown projection plus a computed layout estimate, used when auto-fetch is disabled, unsupported, or offline. Keeps the core fully functional in locked-down environments.
 
-Detection is automatic; deployments can pin or disable an adapter explicitly.
+The renderer is still **never a hard dependency** of the core: `pip install docxengine` pulls no binaries, and md/html conversion needs nothing. LibreOffice is fetched lazily, only when a pdf/png render is requested and none is present.
+
+### Automatic provisioning
+
+Resolution order for `soffice`: `DOCXENGINE_SOFFICE`, then `soffice` on `PATH`, then platform defaults, then a previously cached auto-fetched build, then **download on demand**. The download comes over HTTPS from The Document Foundation (`download.documentfoundation.org`) and is **SHA-256-verified against the publisher's own `.sha256` sidecar** before anything is extracted or executed. Nothing is fetched when a local `soffice` already exists or auto-fetch is off. Auto-fetch supports macOS (`.dmg`) and Linux x86-64 (`.deb` tarball); other platforms fall back to detection with an actionable message.
+
+| Env var                         | Purpose                                                             |
+| ------------------------------- | ------------------------------------------------------------------ |
+| `DOCXENGINE_SOFFICE`            | Explicit `soffice` path (skips detection and auto-fetch).           |
+| `DOCXENGINE_AUTO_FETCH_SOFFICE` | Set `0`/`false`/`off` to disable auto-fetch (structural fallback).  |
+| `DOCXENGINE_SOFFICE_CACHE`      | Cache dir (default `$XDG_CACHE_HOME/docxengine` or `~/.cache/docxengine`). |
+| `DOCXENGINE_SOFFICE_VERSION`    | Pin a LibreOffice version instead of resolving the latest stable.   |
+| `DOCXENGINE_SOFFICE_MIRROR`     | Base URL of a mirror of the TDF `stable` tree (air-gapped/custom).  |
+
+Deployments can pin or disable the adapter explicitly via these knobs.
 
 ## Tool surface
 

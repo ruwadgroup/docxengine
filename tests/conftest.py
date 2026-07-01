@@ -114,3 +114,13 @@ def build_docx(parts: dict[str, str] | None = None) -> bytes:
 @pytest.fixture
 def docx_bytes() -> bytes:
     return build_docx()
+
+
+@pytest.fixture(autouse=True)
+def _no_soffice_autofetch(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Never download LibreOffice during the suite (§24 auto-fetch defaults on).
+
+    The provisioner tests that exercise the fetch path re-enable it explicitly
+    under their own controlled, network-free monkeypatching.
+    """
+    monkeypatch.setenv("DOCXENGINE_AUTO_FETCH_SOFFICE", "0")

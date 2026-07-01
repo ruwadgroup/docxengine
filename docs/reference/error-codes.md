@@ -43,7 +43,7 @@ The complete catalog of structured error codes. Every error response carries `{e
 
 | Code                 | Meaning                           | Typical recovery                                                              |
 | -------------------- | --------------------------------- | ----------------------------------------------------------------------------- |
-| `render_unavailable` | No render adapter installed       | fall back to `docx_convert {to: "md"}`; install LibreOffice for visual checks |
+| `render_unavailable` | No render adapter available (auto-fetch off/unsupported/failed) | set `DOCXENGINE_SOFFICE`, enable auto-fetch, or fall back to `docx_convert {to: "md"}` |
 | `render_failed`      | Renderer errored on this document | response includes renderer stderr summary                                     |
 | `unsupported_format` | Unknown `to:` target              | use `md`, `html`, `pdf`, or `png`                                             |
 
