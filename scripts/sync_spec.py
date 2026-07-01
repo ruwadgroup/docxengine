@@ -5,7 +5,7 @@ The Python package ships its own copy of the tool/error contracts so that
 ``docxengine._spec`` works from an installed wheel without the repo checkout.
 Run this script after any change under ``spec/`` and commit the result:
 
-    python python/scripts/sync_spec.py
+    python scripts/sync_spec.py
 """
 
 from __future__ import annotations
@@ -14,9 +14,9 @@ import shutil
 import sys
 from pathlib import Path
 
-REPO_DIR = Path(__file__).resolve().parents[2]
+REPO_DIR = Path(__file__).resolve().parents[1]
 SPEC_DIR = REPO_DIR / "spec"
-DEST_DIR = REPO_DIR / "python" / "src" / "docxengine" / "_specdata"
+DEST_DIR = REPO_DIR / "src" / "docxengine" / "_specdata"
 
 
 def main() -> int:

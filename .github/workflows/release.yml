@@ -27,9 +27,9 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install engine
-        run: pip install -e "python[dev]"
+        run: pip install -e ".[dev]"
       - name: Python tests
-        run: pytest python
+        run: pytest
 
   publish-python:
     name: Publish to PyPI
@@ -44,11 +44,11 @@ jobs:
       - name: Build sdist + wheel
         run: |
           pip install build
-          python -m build python
+          python -m build
       - name: Publish (trusted publishing)
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: python/dist
+          packages-dir: dist
 
   github-release:
     name: Draft GitHub release

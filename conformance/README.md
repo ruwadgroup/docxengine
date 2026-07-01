@@ -17,7 +17,7 @@ conformance/
 
 ## How it's used
 
-- **Python tests** (`python/tests/test_edit.py`, `test_read.py`, `test_revisions.py`) open fixtures from `corpus/` and assert exact results — guarded by `skipif(not CORPUS.is_dir())`.
+- **Python tests** (`tests/test_edit.py`, `test_read.py`, `test_revisions.py`) open fixtures from `corpus/` and assert exact results — guarded by `skipif(not CORPUS.is_dir())`.
 - **`bench/`** regenerates the corpus deterministically via `harness/make_fixtures.py` (never reimplemented).
 - **Fidelity** (`make fidelity`) runs `fidelity/run.py` — structural checks everywhere, LibreOffice visual rendering when available.
 

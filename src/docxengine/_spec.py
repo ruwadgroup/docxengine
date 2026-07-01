@@ -1,7 +1,7 @@
 """Packaged spec contracts: tool schemas and error codes.
 
 ``_specdata/`` holds verbatim copies of ``spec/tools/*.json`` and
-``spec/errors.json`` (synced by ``python/scripts/sync_spec.py``) so the
+``spec/errors.json`` (synced by ``scripts/sync_spec.py``) so the
 contracts ship inside the wheel. Public accessors return fresh copies; the
 private loaders are cached and must be treated as read-only.
 """

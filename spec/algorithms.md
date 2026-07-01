@@ -1,6 +1,6 @@
 # Algorithms
 
-The algorithm specification. The Python implementation (`python/`) follows this document exactly; outputs are **deterministic and stable across runs** (§10). Where this spec pins a choice, the choice is normative — "reasonable alternative" behavior is a conformance failure.
+The algorithm specification. The Python implementation (`src/docxengine/`) follows this document exactly; outputs are **deterministic and stable across runs** (§10). Where this spec pins a choice, the choice is normative — "reasonable alternative" behavior is a conformance failure.
 
 Behavioral background lives in [docs/core/](../docs/core/); this file pins the bytes.
 

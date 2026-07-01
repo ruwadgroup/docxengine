@@ -5,6 +5,5 @@
 *.docx binary
 *.pdf binary
 *.svg text
-pnpm-lock.yaml linguist-generated=true
 conformance/corpus/** linguist-vendored=true
 **/testdata/** linguist-vendored=true

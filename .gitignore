@@ -1,8 +1,3 @@
-# Node
-node_modules/
-dist/
-coverage/
-
 # Python
 __pycache__/
 *.py[cod]
@@ -13,6 +8,8 @@ venv/
 .ruff_cache/
 .mypy_cache/
 build/
+dist/
+coverage/
 
 # Render previews & scratch output (agent self-check artifacts)
 *.preview.png

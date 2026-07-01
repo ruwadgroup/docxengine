@@ -2,103 +2,134 @@
 
 # DocxEngine
 
-**Surgical, fidelity-preserving DOCX editing for AI agents — and for you.**
+**The fast, reliable way for AI agents to create and edit Word documents.**
 
-One deterministic core that edits OOXML directly (unzip → patch XML → rezip), exposed as an **MCP server** and a **Python package** (`docxengine`). Agents see a token-efficient, Markdown-like projection with content-hash-anchored paragraph IDs — never raw XML.
+DocxEngine lets an AI agent open a `.docx` file, read it back as clean text, and make precise edits without corrupting the file or dropping the tracked changes, comments, and formatting that other tools throw away.
+It runs as an [MCP](https://modelcontextprotocol.io) server, so it plugs straight into Claude Code, Codex, Cursor, and any other MCP client.
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/ruwadgroup/docxengine/actions/workflows/ci.yml/badge.svg)](https://github.com/ruwadgroup/docxengine/actions/workflows/ci.yml)
-[![Python ≥3.12](https://img.shields.io/badge/python-%E2%89%A53.12-blue)](python/)
+[![Python ≥3.12](https://img.shields.io/badge/python-%E2%89%A53.12-blue)](https://pypi.org/project/docxengine/)
 [![MCP](https://img.shields.io/badge/MCP-stdio%20%2B%20streamable--http-8A2BE2)](docs/mcp/server.md)
-[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://conventionalcommits.org)
 [![Release](https://img.shields.io/github/v/tag/ruwadgroup/docxengine?sort=semver&label=release&color=blue)](https://github.com/ruwadgroup/docxengine/releases)
 
-[Quickstart](docs/start/quickstart.md) · [Concepts](docs/start/concepts.md) · [Tool reference](docs/tools/index.md) · [Architecture](ARCHITECTURE.md) · [MCP server](docs/mcp/server.md) · [Docs](docs/README.md) · [Roadmap](ROADMAP.md)
+[Install](#install) · [Quickstart](docs/start/quickstart.md) · [Tool reference](docs/tools/index.md) · [MCP server](docs/mcp/server.md) · [Docs](docs/README.md)
 
 </div>
 
 ---
 
-## Table of contents
+## Why agents need this
 
-- [Overview](#overview)
-- [Features](#features)
-- [Why DocxEngine](#why-docxengine)
-- [What DocxEngine is not](#what-docxengine-is-not)
-- [Architecture](#architecture)
-- [The agent view](#the-agent-view)
-- [Getting started](#getting-started)
-- [Documentation](#documentation)
-- [Repository layout](#repository-layout)
-- [Roadmap & status](#roadmap--status)
-- [Contributing](#contributing)
-- [Community & support](#community--support)
-- [License](#license)
+Ask an agent to "accept Jane's edits and update the effective date" and most tooling falls apart.
+python-docx silently drops tracked changes, plain find-and-replace misses text because Word splits it across hidden boundaries, and a single bad write makes Word pop a "repair" dialog when the file is opened.
 
-## Overview
+DocxEngine avoids all of that by editing the document format directly and checking every change before it saves.
+What the agent gets:
 
-Every mainstream DOCX library has a disqualifying gap for agent use: python-docx has no tracked-changes support (open since 2016), docx-js is generation-focused, docxtemplater is template-bound, Pandoc round-trips are lossy, and LibreOffice headless is heavyweight. The only approach that preserves **tracked changes, comments, and footnotes** is editing the OOXML directly — the same strategy Anthropic's docx skill and the strongest MCP servers converged on.
+- **Clean, token-light reads.** Documents come back as Markdown-like text with stable line IDs, never raw XML, so the agent spends its context on content instead of markup.
+- **Edits that stick.** Replace, insert, delete, or rewrite any paragraph without disturbing tracked changes, comments, footnotes, styles, or images.
+- **Real redlines.** Write genuine tracked changes as a named author, then accept or reject them filtered by author or date.
+- **Safe by default.** Every edit is validated against the Word format before it is written, so files open cleanly and Word never "repairs" them.
+- **A way to check its work.** Render any document to PDF or PNG so the agent can visually confirm the result.
 
-DocxEngine packages that strategy as a reusable engine:
+The full surface covers comments, tables, styles, sections, lists, images, fields, and mustache-style template fill, plus Markdown ↔ docx conversion.
+24 focused tools in total, backed by 476 tests.
 
-- A **deterministic core** (no LLM inside) that models the OPC/ZIP package, patches the XML DOM, coalesces split runs, writes real `w:ins`/`w:del` redlines, and validates every edit against OOXML before saving — so Word never silently "repairs" your file.
-- An **agent-computer interface** of ~16 high-leverage, namespaced tools (`docx_search`, `docx_replace`, `docx_revision`, …) with structured, corrective errors and idempotent semantics.
-- **Stable addressing** via content-hash anchors (`P12#a7b2`) — because `w14:paraId` is not spec-guaranteed stable across Word save cycles and is absent from docs written by non-Word tools.
-- A **verification loop**: render-to-PDF/PNG previews (via a pluggable LibreOffice adapter) so agents can self-check their edits.
+## Install
 
-## Features
+DocxEngine ships as an MCP server.
+Point your agent at it and go: there are no document handles to track and no save step, because every tool takes a file path and saves automatically.
+Pick your client below.
 
-- **Fidelity-preserving surgical edits** — replace, insert, delete, and rewrite paragraphs in arbitrary existing documents without disturbing tracked changes, comments, footnotes, styles, or media.
-- **Real redlines** — first-class tracked-change writing (`track_changes: true, author: "..."`), plus accept/reject filtered by author or date.
-- **Token-efficient reading** — outline first, then paginated, Markdown-like projections with only salient formatting; raw OOXML is never shown by default. Text-first tools return Markdown over MCP, not JSON-wrapped strings.
-- **Hash-anchored addressing** — every paragraph gets a `P{index}#{hash}` anchor validated before each edit; edits return fresh anchors so agents never re-list mid-batch.
-- **Always-on validation gate** — ID uniqueness, orphaned relationships, dangling footnotes, and content-type errors are caught before save, with auto-repair where safe.
-- **Comments, tables, styles, sections, lists, media, fields, templates** — the full capability surface is implemented: threaded comments with resolve state, style-definition edits, mustache template merge with loops, Markdown↔docx conversion, and field-code insertion.
-- **MCP-native distribution** — an MCP server (stdio + Streamable HTTP) plus `pip install docxengine`; the published JSON Schemas plug into any framework, with thin OpenAI/Anthropic adapters included.
+<details open>
+<summary><b>Claude Code</b></summary>
 
-## Why DocxEngine
-
-Agents are a new class of end-user, and tools must be designed for them rather than wrapped from existing APIs (SWE-agent, NeurIPS 2024). Raw OOXML is distracting context; agents can't "see" the rendered page; and naive find-and-replace fails because Word fragments text across run boundaries. DocxEngine applies the resulting design principles end to end:
-
-| Principle                        | How DocxEngine applies it                                                          |
-| -------------------------------- | ---------------------------------------------------------------------------------- |
-| Simple, few, high-leverage tools | ~16 namespaced tools across 5 groups, not a 1:1 API wrapper                        |
-| Guarded actions                  | every edit is hash-validated and OOXML-validated before it lands                   |
-| Token economy                    | outline → windowed reads, `concise`/`detailed` formats, ~25k-token response cap    |
-| Feedback loops                   | structured corrective errors + render-based visual self-check                      |
-| Determinism                      | the core contains no LLM; the same call on the same document yields the same bytes |
-
-## What DocxEngine is not
-
-- **Not a renderer.** Fields, TOC entries, and page numbers only materialize when Word or LibreOffice renders; the engine inserts and updates _field codes_ and tells agents so explicitly.
-- **Not a template DSL.** `docx_template_fill` covers mustache-style merge with loops and conditions, but DocxEngine's center of gravity is _arbitrary surgical edits of existing documents_.
-- **Not a python-docx wrapper.** That library drops the document features this project exists to preserve; it appears at most in narrow create paths.
-- **Not Word automation.** No COM, no Office.js host, no GUI — server-side and offline by design.
-
-## Architecture
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  Integration faces (thin)                                      │
-│  1. MCP server (stdio + streamable-HTTP) — file-first          │
-│  2. Python package  (docxengine)   — JSON-in/JSON-out + native │
-│     + OpenAI/Anthropic tool-schema adapters (thin)             │
-├──────────────────────────────────────────────────────────────┤
-│  Core engine (deterministic, no LLM)                           │
-│   • OPC/ZIP package model      • Style cascade resolver        │
-│   • XML DOM patcher            • Numbering resolver            │
-│   • Run-coalescing find/replace• Tracked-change writer         │
-│   • Content-hash anchor index  • Comment/footnote part manager │
-│   • Markdown projector (read)  • OOXML validator + repairer    │
-│   • Render adapter (LibreOffice/Word) for verification         │
-└──────────────────────────────────────────────────────────────┘
+```bash
+claude mcp add docx -- uvx docxengine-mcp
 ```
 
-DocxEngine is a pure-`pip` install with zero native toolchain. The public tool contract lives in [`spec/`](spec/) (language-agnostic JSON Schemas) and is the source of truth for the MCP `tools/list`, the framework adapters, and input validation. The full reasoning, including the addressing design and tool surface, is in [ARCHITECTURE.md](ARCHITECTURE.md).
+</details>
 
-## The agent view
+<details>
+<summary><b>Codex CLI</b></summary>
 
-Agents never see raw OOXML. Reads return a Markdown-like projection annotated with stable anchors and only the formatting that matters:
+```bash
+codex mcp add docx -- uvx docxengine-mcp
+```
+
+Or add it to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.docx]
+command = "uvx"
+args = ["docxengine-mcp"]
+```
+
+</details>
+
+<details>
+<summary><b>Cursor</b></summary>
+
+Add to `.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (global):
+
+```json
+{ "mcpServers": { "docx": { "command": "uvx", "args": ["docxengine-mcp"] } } }
+```
+
+</details>
+
+<details>
+<summary><b>Claude Desktop</b></summary>
+
+Add to `claude_desktop_config.json` (Settings → Developer → Edit Config):
+
+```json
+{ "mcpServers": { "docx": { "command": "uvx", "args": ["docxengine-mcp"] } } }
+```
+
+</details>
+
+<details>
+<summary><b>Windsurf</b></summary>
+
+Add to `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{ "mcpServers": { "docx": { "command": "uvx", "args": ["docxengine-mcp"] } } }
+```
+
+</details>
+
+<details>
+<summary><b>VS Code (GitHub Copilot)</b></summary>
+
+Add to `.vscode/mcp.json`:
+
+```json
+{ "servers": { "docx": { "command": "uvx", "args": ["docxengine-mcp"] } } }
+```
+
+</details>
+
+<details>
+<summary><b>Any other MCP client</b></summary>
+
+Run `docxengine-mcp` over stdio, or point the client at this server block:
+
+```json
+{ "mcpServers": { "docx": { "command": "uvx", "args": ["docxengine-mcp"] } } }
+```
+
+</details>
+
+`uvx` runs the server with zero install ([install uv](https://docs.astral.sh/uv/)).
+Prefer pip? Run `pip install docxengine` and use `docxengine-mcp` as the command.
+
+## What the agent sees
+
+The agent never touches raw OOXML.
+A read returns Markdown-like text with stable anchors and only the formatting that matters:
 
 ```
 [P1#a7b2  H1]            Master Services Agreement
@@ -109,42 +140,21 @@ Agents never see raw OOXML. Reads return a Markdown-like projection annotated wi
 [P12#e7f8  List:ol L1]   First obligation
 ```
 
-A typical edit flow:
+Each line has a stable ID (`P4#d4e5`) the agent uses to target edits, so it never has to re-read the whole document mid-task.
+A typical edit is one call:
 
 ```json
-→ docx_revision {"doc_id":"d1","op":"accept","filter":{"author":"Jane Doe"}}
-← {"accepted":12,"remaining_by_author":{"Bob":3},"note":"Resolved <w:ins>/<w:del> for Jane Doe; Bob's 3 revisions untouched."}
+→ docx_revision {"path":"contract.docx","op":"accept","filter":{"author":"Jane Doe"}}
+← {"accepted":12,"remaining_by_author":{"Bob":3},"note":"Accepted Jane Doe's tracked changes; Bob's 3 revisions untouched."}
 ```
 
-See [Concepts](docs/start/concepts.md) for anchors, projection, and the validation gate, and the [tool reference](docs/tools/index.md) for all tools.
+See [Concepts](docs/start/concepts.md) for how anchors, reads, and validation fit together, and the [tool reference](docs/tools/index.md) for every tool.
 
-## Getting started
+## How it works
 
-```bash
-# Install (PyPI)
-pip install docxengine
-
-# Or run the MCP server with zero install (uv)
-uvx docxengine-mcp
-
-# Claude Desktop / any MCP client — stdio
-docxengine-mcp
-
-# Claude Code
-claude mcp add docx -- uvx docxengine-mcp
-```
-
-MCP client config (Claude Desktop / Cursor):
-
-```json
-{
-  "mcpServers": {
-    "docxengine": { "command": "uvx", "args": ["docxengine-mcp"] }
-  }
-}
-```
-
-Over MCP the engine is **file-first**: tools take a file `path` and every edit is validated and saved back automatically — no handles to track, no save step.
+DocxEngine is a deterministic core with no LLM inside: the same call on the same document always produces the same bytes.
+It edits the OOXML directly (unzip, patch the XML, rezip), coalesces the split runs Word leaves behind, writes real `w:ins`/`w:del` redlines, and validates the result before saving.
+The full design, including the addressing scheme and tool surface, is in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Documentation
 
@@ -152,10 +162,9 @@ Over MCP the engine is **file-first**: tools take a file `path` and every edit i
 | ----------------------------------------- | --------------------------------------------------------------------------- |
 | [Start](docs/start/quickstart.md)         | Installation, quickstart flows, core concepts                               |
 | [Core](docs/core/ooxml-pitfalls.md)       | OOXML pitfalls, anchors, projection, tracked changes, validation, rendering |
-| [Tools](docs/tools/index.md)              | The full agent-computer interface, group by group, plus error design        |
+| [Tools](docs/tools/index.md)              | The full tool interface, group by group, plus error design                  |
 | [MCP](docs/mcp/server.md)                 | Transports, resources, session state, scaling                               |
 | [Conformance](docs/conformance/corpus.md) | Round-trip fidelity corpus, agent task benchmark                            |
-| [Research](docs/research/prior-art.md)    | Prior art, key findings, competitive landscape                              |
 | [Reference](docs/reference/glossary.md)   | Glossary, tool schemas, error codes                                         |
 
 Start at [docs/README.md](docs/README.md).
@@ -164,28 +173,36 @@ Start at [docs/README.md](docs/README.md).
 
 ```
 docxengine/
-├── spec/            # Language-agnostic JSON tool contract (the source of truth)
-├── python/          # docxengine — Python implementation + MCP server (pip)
-├── conformance/     # Shared corpus + renderer fidelity harness
-├── examples/        # End-to-end agent flows
-├── docs/            # Design docs, tool reference, guides
-└── .github/         # CI, release, security scanning, templates
+├── src/            # docxengine package + MCP server
+├── tests/          # Test suite
+├── spec/           # Language-agnostic JSON tool contract (the source of truth)
+├── conformance/    # Shared corpus + renderer fidelity harness
+├── examples/       # End-to-end agent flows
+├── docs/           # Design docs, tool reference, guides
+└── .github/        # CI, release, security scanning, templates
 ```
 
-## Roadmap & status
+## Status
 
-**Stable (v1.0.0).** All 24 tools are implemented and tested: 476 Python tests, plus a 10-task agent benchmark passing end-to-end over the file-first MCP server with zero tool errors and zero Word-repair events. Hostile-input hardening is built in (zip-bomb caps, `<!DOCTYPE`/`<!ENTITY` rejection, XML depth caps, path-traversal clamping — all tunable via `DOCXENGINE_MAX_*`; see [SECURITY.md](SECURITY.md)), alongside adversarial test suites, a large-document perf benchmark (`make perf`), and a cross-renderer fidelity harness (`make fidelity`). Full plan: [ROADMAP.md](ROADMAP.md).
+**Stable (v1.0.0).**
+All 24 tools are implemented and tested: 476 Python tests, plus a 10-task agent benchmark that runs end to end over the MCP server with zero tool errors and zero Word-repair events.
+Hostile input is handled out of the box (zip-bomb caps, `<!DOCTYPE`/`<!ENTITY` rejection, XML depth caps, path-traversal clamping, all tunable via `DOCXENGINE_MAX_*`; see [SECURITY.md](SECURITY.md)), alongside a large-document perf benchmark (`make perf`) and a cross-renderer fidelity harness (`make fidelity`).
+Full plan: [ROADMAP.md](ROADMAP.md).
 
 ## Contributing
 
-Contributions are welcome — especially conformance corpus documents, OOXML edge-case reports, and benchmark tasks. Read [CONTRIBUTING.md](CONTRIBUTING.md) for the ground rules (the invariants), development setup, and commit conventions ([Conventional Commits](https://www.conventionalcommits.org) with enforced scopes).
+Contributions are welcome, especially conformance corpus documents, OOXML edge-case reports, and benchmark tasks.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for the ground rules, development setup, and commit conventions ([Conventional Commits](https://www.conventionalcommits.org) with enforced scopes).
 
 ## Community & support
 
-- **Bugs & features** — [GitHub issues](https://github.com/ruwadgroup/docxengine/issues) (structured templates)
-- **Security reports** — privately, per [SECURITY.md](SECURITY.md)
-- **Governance** — [GOVERNANCE.md](GOVERNANCE.md)
+- **Bugs & features** - [GitHub issues](https://github.com/ruwadgroup/docxengine/issues) (structured templates)
+- **Security reports** - privately, per [SECURITY.md](SECURITY.md)
+- **Governance** - [GOVERNANCE.md](GOVERNANCE.md)
 
 ## License
 
-[Apache-2.0](LICENSE). DocxEngine optionally shells out to external renderers/converters under their own licenses — see [LICENSING.md](LICENSING.md).
+[Apache-2.0](LICENSE).
+DocxEngine optionally shells out to external renderers/converters under their own licenses; see [LICENSING.md](LICENSING.md).
+</content>
+</invoke>
