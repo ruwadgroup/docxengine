@@ -180,13 +180,6 @@ docxengine/
 └── .github/        # CI, release, security scanning, templates
 ```
 
-## Status
-
-**Stable (v1.0.0).**
-All 24 tools are implemented and tested: 476 Python tests, plus a 10-task agent benchmark that runs end to end over the MCP server with zero tool errors and zero Word-repair events.
-Hostile input is handled out of the box (zip-bomb caps, `<!DOCTYPE`/`<!ENTITY` rejection, XML depth caps, path-traversal clamping, all tunable via `DOCXENGINE_MAX_*`; see [SECURITY.md](SECURITY.md)), alongside a large-document perf benchmark (`make perf`) and a cross-renderer fidelity harness (`make fidelity`).
-Full plan: [ROADMAP.md](ROADMAP.md).
-
 ## Contributing
 
 Contributions are welcome, especially conformance corpus documents, OOXML edge-case reports, and benchmark tasks.
